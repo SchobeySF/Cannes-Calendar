@@ -1,4 +1,5 @@
 import { useState } from 'react';
+// Force rebuild
 import { useAuth } from '../context/AuthContext';
 import frontyardImg from '../assets/Frontyard.jpg';
 
