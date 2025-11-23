@@ -21,7 +21,7 @@ const LoginPage = () => {
     <div
       className="login-container"
       style={{
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url('https://images.unsplash.com/photo-1563296291-14f26f10c20f?q=80&w=2664&auto=format&fit=crop')`,
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url('https://images.unsplash.com/photo-1499002238440-d264edd596ec?fm=jpg&q=80&w=2000&auto=format&fit=crop')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}
