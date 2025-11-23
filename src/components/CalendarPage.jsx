@@ -17,7 +17,7 @@ const CalendarPage = () => {
       <header className="app-header">
         <div className="container header-content">
           <div className="brand">
-            <h2>Maison Schober</h2>
+            <h2 translate="no" className="notranslate">Maison Schober</h2>
             <span className="year-badge">{currentYear}</span>
           </div>
 

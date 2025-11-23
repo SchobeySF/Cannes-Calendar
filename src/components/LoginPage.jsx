@@ -27,7 +27,7 @@ const LoginPage = () => {
       }}
     >
       <div className="login-card">
-        <h1>Maison Schober</h1>
+        <h1 translate="no" className="notranslate">Maison Schober</h1>
         <p className="subtitle">Bienvenue à notre maison</p>
 
         <form onSubmit={handleSubmit}>
