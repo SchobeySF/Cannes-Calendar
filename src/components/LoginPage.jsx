@@ -1,7 +1,6 @@
 import { useState } from 'react';
 // Force rebuild
 import { useAuth } from '../context/AuthContext';
-import frontyardImg from '../assets/Frontyard.jpg';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -22,7 +21,7 @@ const LoginPage = () => {
     <div
       className="login-container"
       style={{
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${frontyardImg})`,
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('/Frontyard.jpg')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}
