@@ -38,8 +38,6 @@ const CalendarPage = () => {
           <div className="user-controls">
             {view === 'calendar' && (
               <div className="legend">
-                <span className="legend-item"><span className="dot available"></span>Available</span>
-                <span className="legend-item"><span className="dot booked"></span>Booked</span>
                 <span className="legend-item"><span className="dot my-booking" style={{ background: user.color }}></span>My Booking</span>
               </div>
             )}
@@ -62,7 +60,7 @@ const CalendarPage = () => {
               Profile
             </button>
 
-            <button onClick={logout} className="btn btn-outline">
+            <button onClick={logout} className="btn btn-outline sign-out-btn">
               Sign Out
             </button>
           </div>
@@ -94,6 +92,7 @@ const CalendarPage = () => {
           align-items: center;
           flex-wrap: wrap;
           gap: 1rem;
+          position: relative;
         }
 
         .brand {
@@ -150,6 +149,7 @@ const CalendarPage = () => {
           display: flex;
           align-items: center;
           gap: 2rem;
+          margin-right: 4rem; /* Make space for fixed sign out button */
         }
 
         .legend {
@@ -171,9 +171,12 @@ const CalendarPage = () => {
           border-radius: 50%;
         }
         
-        .dot.available { border: 1px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.1); }
-        .dot.booked { background: rgba(255,255,255,0.8); }
-        .dot.my-booking { background: var(--color-azure); border: 1px solid white; }
+        .dot.my-booking { 
+          background: var(--color-azure); 
+          border: 1px solid white;
+          width: 16px; /* 60% bigger than 10px */
+          height: 16px;
+        }
 
         .btn-outline {
           border: 1px solid rgba(255, 255, 255, 0.3);
@@ -186,21 +189,34 @@ const CalendarPage = () => {
           border-color: white;
           background: rgba(255, 255, 255, 0.1);
         }
+        
+        .sign-out-btn {
+          position: absolute;
+          top: 50%;
+          right: 0;
+          transform: translateY(-50%);
+        }
 
         @media (max-width: 900px) {
           .header-content {
             flex-direction: column;
             gap: 1rem;
+            padding-right: 0;
           }
           .user-controls {
             flex-direction: column;
             gap: 1rem;
+            margin-right: 0;
           }
           .year-nav {
             order: 3;
             width: 100%;
             justify-content: center;
             overflow-x: auto;
+          }
+          .sign-out-btn {
+            position: static;
+            transform: none;
           }
         }
       `}</style>
