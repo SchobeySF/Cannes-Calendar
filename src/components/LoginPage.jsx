@@ -65,7 +65,7 @@ const LoginPage = () => {
         }
 
         .login-card {
-          background: rgba(255, 255, 255, 0.95);
+          background: #07074cd4;
           padding: 3rem;
           border-radius: 16px;
           box-shadow: 0 10px 25px rgba(0,0,0,0.2);
@@ -73,17 +73,18 @@ const LoginPage = () => {
           max-width: 400px;
           width: 90%;
           backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         h1 {
           font-family: var(--font-heading);
-          color: var(--text-primary);
+          color: white;
           margin-bottom: 0.5rem;
           font-size: 2.5rem;
         }
 
         .subtitle {
-          color: var(--text-secondary);
+          color: rgba(255, 255, 255, 0.8);
           margin-bottom: 2rem;
           font-style: italic;
         }
@@ -95,16 +96,23 @@ const LoginPage = () => {
         .login-input {
           width: 100%;
           padding: 12px;
-          border: 1px solid #ddd;
+          border: 1px solid rgba(255, 255, 255, 0.2);
           border-radius: 8px;
           font-size: 1rem;
           font-family: var(--font-body);
-          transition: border-color 0.3s;
+          transition: all 0.3s;
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+        }
+        
+        .login-input::placeholder {
+          color: rgba(255, 255, 255, 0.5);
         }
 
         .login-input:focus {
           outline: none;
-          border-color: var(--accent-primary);
+          border-color: white;
+          background: rgba(255, 255, 255, 0.2);
         }
 
         .login-btn {
@@ -112,10 +120,18 @@ const LoginPage = () => {
           padding: 12px;
           font-size: 1.1rem;
           margin-top: 1rem;
+          background: white;
+          color: #07074c;
+          border: none;
+          font-weight: 600;
+        }
+        
+        .login-btn:hover {
+          background: rgba(255, 255, 255, 0.9);
         }
 
         .error-message {
-          color: var(--color-terracotta);
+          color: #ff6b6b;
           font-size: 0.9rem;
           margin-bottom: 1rem;
         }
