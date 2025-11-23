@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 const AnnualCalendar = ({ year = 2026 }) => {
   const { user, allUsers } = useAuth();
-  const [bookings, setBookings] = useState({});
+  const [hoveredBooking, setHoveredBooking] = useState(null);
 
   useEffect(() => {
     // Load bookings from local storage for the specific year
@@ -80,13 +80,21 @@ const AnnualCalendar = ({ year = 2026 }) => {
     return {};
   };
 
-  const getTooltip = (month, day) => {
+  const handleMouseEnter = (e, month, day) => {
     const dateStr = formatDate(year, month, day);
     const booking = bookings[dateStr];
     if (booking) {
-      return booking.user.username === user.username ? 'Booked by You' : `Booked by ${booking.user.name}`;
+      const rect = e.target.getBoundingClientRect();
+      setHoveredBooking({
+        name: booking.user.name,
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10
+      });
     }
-    return 'Available';
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredBooking(null);
   };
 
   return (
@@ -115,9 +123,10 @@ const AnnualCalendar = ({ year = 2026 }) => {
                 <button
                   key={day}
                   onClick={() => handleDateClick(monthIndex, day)}
+                  onMouseEnter={(e) => handleMouseEnter(e, monthIndex, day)}
+                  onMouseLeave={handleMouseLeave}
                   className={`day-cell ${isBooked ? 'booked' : ''}`}
                   style={getDayStyle(monthIndex, day)}
-                  title={getTooltip(monthIndex, day)}
                 >
                   {day}
                 </button>
@@ -126,6 +135,19 @@ const AnnualCalendar = ({ year = 2026 }) => {
           </div>
         </div>
       ))}
+
+      {hoveredBooking && (
+        <div
+          className="custom-tooltip"
+          style={{
+            left: hoveredBooking.x,
+            top: hoveredBooking.y
+          }}
+        >
+          <div className="tooltip-label">Booked by</div>
+          <div className="tooltip-name">{hoveredBooking.name}</div>
+        </div>
+      )}
 
       <style>{`
         .calendar-grid {
@@ -194,6 +216,46 @@ const AnnualCalendar = ({ year = 2026 }) => {
         
         .day-cell.booked:hover {
            opacity: 0.8;
+        }
+
+        .custom-tooltip {
+          position: fixed;
+          transform: translate(-50%, -100%);
+          background: white;
+          padding: 8px 16px;
+          border-radius: 8px;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+          pointer-events: none;
+          z-index: 1000;
+          text-align: center;
+          border: 1px solid rgba(0,0,0,0.05);
+          margin-top: -8px;
+        }
+
+        .custom-tooltip::after {
+          content: '';
+          position: absolute;
+          bottom: -6px;
+          left: 50%;
+          transform: translateX(-50%);
+          border-width: 6px 6px 0;
+          border-style: solid;
+          border-color: white transparent transparent transparent;
+        }
+
+        .tooltip-label {
+          font-size: 0.7rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: var(--text-secondary);
+          margin-bottom: 2px;
+        }
+
+        .tooltip-name {
+          font-family: var(--font-heading);
+          font-weight: 600;
+          color: var(--color-mediterranean);
+          font-size: 1.1rem;
         }
       `}</style>
     </div>
