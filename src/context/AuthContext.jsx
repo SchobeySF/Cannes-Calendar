@@ -1,4 +1,17 @@
 import { createContext, useState, useContext, useEffect } from 'react';
+import {
+    collection,
+    onSnapshot,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    doc,
+    query,
+    where,
+    getDocs,
+    writeBatch
+} from 'firebase/firestore';
+import { db } from '../firebase';
 
 const AuthContext = createContext(null);
 
@@ -16,29 +29,41 @@ export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
     const [allUsers, setAllUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Load users from local storage or seed
-        const storedUsers = localStorage.getItem('cannes_users_db');
-        if (storedUsers) {
-            setAllUsers(JSON.parse(storedUsers));
-        } else {
-            setAllUsers(INITIAL_USERS);
-            localStorage.setItem('cannes_users_db', JSON.stringify(INITIAL_USERS));
-        }
+        // Real-time listener for users
+        const unsubscribe = onSnapshot(collection(db, 'users'), async (snapshot) => {
+            const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Check local storage for existing session
+            if (usersData.length === 0) {
+                // Seed database if empty
+                const batch = writeBatch(db);
+                INITIAL_USERS.forEach(user => {
+                    const docRef = doc(collection(db, 'users'));
+                    batch.set(docRef, user);
+                });
+                await batch.commit();
+            } else {
+                setAllUsers(usersData);
+            }
+            setLoading(false);
+        });
+
+        // Check local storage for existing session (just to keep user logged in on refresh)
         const storedUser = localStorage.getItem('cannes_user');
         if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
             setIsAuthenticated(true);
-            setUser(JSON.parse(storedUser));
+            setUser(parsedUser);
         }
+
+        return () => unsubscribe();
     }, []);
 
     const login = (username, password) => {
-        // Refresh users from DB to ensure we have latest data (e.g. if password changed)
-        const currentUsers = JSON.parse(localStorage.getItem('cannes_users_db') || '[]');
-        const foundUser = currentUsers.find(u => u.username === username && u.password === password);
+        // Check against the real-time synced users list
+        const foundUser = allUsers.find(u => u.username === username && u.password === password);
 
         if (foundUser) {
             setIsAuthenticated(true);
@@ -56,35 +81,38 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Admin Methods
-    const addUser = (newUser) => {
+    const addUser = async (newUser) => {
         // Assign a random pastel color if not provided
         const defaultColors = ['#E6E6FA', '#87CEEB', '#F4A460', '#98FB98', '#FFB6C1', '#DDA0DD', '#F0E68C'];
         const randomColor = defaultColors[Math.floor(Math.random() * defaultColors.length)];
 
-        const updatedUsers = [...allUsers, { ...newUser, role: 'user', color: randomColor }];
-        setAllUsers(updatedUsers);
-        localStorage.setItem('cannes_users_db', JSON.stringify(updatedUsers));
+        await addDoc(collection(db, 'users'), {
+            ...newUser,
+            role: 'user',
+            color: randomColor
+        });
     };
 
-    const updateUser = (username, updates) => {
-        const updatedUsers = allUsers.map(u =>
-            u.username === username ? { ...u, ...updates } : u
-        );
-        setAllUsers(updatedUsers);
-        localStorage.setItem('cannes_users_db', JSON.stringify(updatedUsers));
+    const updateUser = async (username, updates) => {
+        const userToUpdate = allUsers.find(u => u.username === username);
+        if (userToUpdate) {
+            const userRef = doc(db, 'users', userToUpdate.id);
+            await updateDoc(userRef, updates);
 
-        // If updating current user, update session too
-        if (user && user.username === username) {
-            const updatedCurrentUser = { ...user, ...updates };
-            setUser(updatedCurrentUser);
-            localStorage.setItem('cannes_user', JSON.stringify(updatedCurrentUser));
+            // If updating current user, update session too
+            if (user && user.username === username) {
+                const updatedCurrentUser = { ...user, ...updates };
+                setUser(updatedCurrentUser);
+                localStorage.setItem('cannes_user', JSON.stringify(updatedCurrentUser));
+            }
         }
     };
 
-    const deleteUser = (usernameToDelete) => {
-        const updatedUsers = allUsers.filter(u => u.username !== usernameToDelete);
-        setAllUsers(updatedUsers);
-        localStorage.setItem('cannes_users_db', JSON.stringify(updatedUsers));
+    const deleteUser = async (usernameToDelete) => {
+        const userToDelete = allUsers.find(u => u.username === usernameToDelete);
+        if (userToDelete) {
+            await deleteDoc(doc(db, 'users', userToDelete.id));
+        }
     };
 
     return (
@@ -96,7 +124,8 @@ export const AuthProvider = ({ children }) => {
             allUsers,
             addUser,
             updateUser,
-            deleteUser
+            deleteUser,
+            loading
         }}>
             {children}
         </AuthContext.Provider>

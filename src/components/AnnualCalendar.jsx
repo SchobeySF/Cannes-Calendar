@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { MONTHS, DAYS, getDaysInMonth, getFirstDayOfMonth, formatDate, isDatePast } from '../utils/dateUtils';
 import { useAuth } from '../context/AuthContext';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const AnnualCalendar = ({ year = 2026 }) => {
   const { user, allUsers } = useAuth();
@@ -8,31 +10,24 @@ const AnnualCalendar = ({ year = 2026 }) => {
   const [hoveredBooking, setHoveredBooking] = useState(null);
 
   useEffect(() => {
-    // Load bookings from local storage for the specific year
-    const storageKey = `cannes_bookings_${year}`;
-    const storedBookings = localStorage.getItem(storageKey);
+    // Real-time listener for bookings for the specific year
+    const bookingsRef = doc(db, 'bookings', String(year));
 
-    if (storedBookings) {
-      setBookings(JSON.parse(storedBookings));
-    } else {
-      // Mock some initial bookings only for 2026
-      if (year === 2026) {
-        const mockBookings = {
-          '2026-07-15': { status: 'booked', user: { name: 'Uncle Jean', username: 'brother' } },
-          '2026-07-16': { status: 'booked', user: { name: 'Uncle Jean', username: 'brother' } },
-          '2026-07-17': { status: 'booked', user: { name: 'Uncle Jean', username: 'brother' } },
-          '2026-08-01': { status: 'booked', user: { name: 'Sarah', username: 'friend' } },
-          '2026-08-02': { status: 'booked', user: { name: 'Sarah', username: 'friend' } },
-        };
-        setBookings(mockBookings);
-        localStorage.setItem(storageKey, JSON.stringify(mockBookings));
+    const unsubscribe = onSnapshot(bookingsRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setBookings(docSnap.data().data || {});
       } else {
+        // If no document exists for this year, we start empty
+        // We don't auto-create it here to avoid empty writes, 
+        // we'll create it on first booking.
         setBookings({});
       }
-    }
+    });
+
+    return () => unsubscribe();
   }, [year]);
 
-  const handleDateClick = (month, day) => {
+  const handleDateClick = async (month, day) => {
     const dateStr = formatDate(year, month, day);
     const currentBooking = bookings[dateStr];
 
@@ -61,8 +56,19 @@ const AnnualCalendar = ({ year = 2026 }) => {
       };
     }
 
+    // Optimistic update (optional, but good for UI responsiveness)
     setBookings(newBookings);
-    localStorage.setItem(`cannes_bookings_${year}`, JSON.stringify(newBookings));
+
+    // Save to Firestore
+    try {
+      await setDoc(doc(db, 'bookings', String(year)), {
+        data: newBookings
+      });
+    } catch (error) {
+      console.error("Error saving booking:", error);
+      // Revert on error (could reload from server or show alert)
+      alert("Failed to save booking. Please try again.");
+    }
   };
 
   const getUserColor = (username) => {
