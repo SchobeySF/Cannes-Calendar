@@ -77,13 +77,15 @@ const CalendarPage = () => {
 
       <style>{`
         .app-header {
-          background: white;
+          background: #07074cd4;
           padding: 1rem 0;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.1);
           margin-bottom: 2rem;
           position: sticky;
           top: 0;
           z-index: 100;
+          backdrop-filter: blur(10px);
+          color: white;
         }
 
         .header-content {
@@ -99,20 +101,25 @@ const CalendarPage = () => {
           align-items: center;
           gap: 1rem;
         }
+        
+        .brand h2 {
+          color: white;
+        }
 
         .year-badge {
-          background: var(--color-lavender);
-          color: var(--color-lavender-dark);
+          background: rgba(255, 255, 255, 0.2);
+          color: white;
           padding: 2px 8px;
           border-radius: 12px;
           font-size: 0.9rem;
           font-weight: 600;
+          border: 1px solid rgba(255, 255, 255, 0.3);
         }
         
         .year-nav {
           display: flex;
           gap: 0.5rem;
-          background: var(--bg-primary);
+          background: rgba(255, 255, 255, 0.1);
           padding: 4px;
           border-radius: 20px;
         }
@@ -123,18 +130,18 @@ const CalendarPage = () => {
           padding: 4px 12px;
           border-radius: 16px;
           font-size: 0.9rem;
-          color: var(--text-secondary);
+          color: rgba(255, 255, 255, 0.7);
           transition: all 0.2s;
         }
         
         .year-btn:hover {
-          color: var(--text-primary);
-          background: rgba(0,0,0,0.05);
+          color: white;
+          background: rgba(255, 255, 255, 0.1);
         }
         
         .year-btn.active {
-          background: var(--color-mediterranean);
-          color: white;
+          background: white;
+          color: #07074c;
           font-weight: 600;
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
@@ -149,6 +156,7 @@ const CalendarPage = () => {
           display: flex;
           gap: 1rem;
           font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.9);
         }
 
         .legend-item {
@@ -163,20 +171,20 @@ const CalendarPage = () => {
           border-radius: 50%;
         }
         
-        .dot.available { border: 1px solid #ddd; }
-        .dot.booked { background: #eee; }
-        .dot.my-booking { background: var(--color-azure); }
+        .dot.available { border: 1px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.1); }
+        .dot.booked { background: rgba(255,255,255,0.8); }
+        .dot.my-booking { background: var(--color-azure); border: 1px solid white; }
 
         .btn-outline {
-          border: 1px solid var(--text-secondary);
+          border: 1px solid rgba(255, 255, 255, 0.3);
           background: transparent;
-          color: var(--text-secondary);
+          color: white;
           padding: 6px 16px;
         }
 
         .btn-outline:hover {
-          border-color: var(--text-primary);
-          color: var(--text-primary);
+          border-color: white;
+          background: rgba(255, 255, 255, 0.1);
         }
 
         @media (max-width: 900px) {
