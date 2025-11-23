@@ -19,7 +19,14 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="login-container">
+    <div
+      className="login-container"
+      style={{
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${frontyardImg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
       <div className="login-card">
         <h1>Maison de Cannes</h1>
         <p className="subtitle">Bienvenue à notre maison</p>
@@ -56,10 +63,6 @@ const LoginPage = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), 
-                      url(${frontyardImg});
-          background-size: cover;
-          background-position: center;
         }
 
         .login-card {
