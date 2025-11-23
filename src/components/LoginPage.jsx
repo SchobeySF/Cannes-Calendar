@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import frontyardImg from '../assets/Frontyard.jpg';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -55,7 +56,7 @@ const LoginPage = () => {
           align-items: center;
           justify-content: center;
           background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), 
-                      url('https://images.unsplash.com/photo-1506606401543-2e73709cebb4?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80');
+                      url(${frontyardImg});
           background-size: cover;
           background-position: center;
         }
