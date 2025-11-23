@@ -1,96 +1,107 @@
 import { useState, useEffect } from 'react';
 import { MONTHS, DAYS, getDaysInMonth, getFirstDayOfMonth, formatDate, isDatePast } from '../utils/dateUtils';
+import { useAuth } from '../context/AuthContext';
 
 const AnnualCalendar = () => {
-    const YEAR = 2026;
-    const [bookings, setBookings] = useState({});
-    const [selectedDates, setSelectedDates] = useState(new Set());
+  const YEAR = 2026;
+  const { user } = useAuth();
+  const [bookings, setBookings] = useState({});
 
-    useEffect(() => {
-        // Load bookings from local storage
-        const storedBookings = localStorage.getItem('cannes_bookings_2026');
-        if (storedBookings) {
-            setBookings(JSON.parse(storedBookings));
-        } else {
-            // Mock some initial bookings
-            const mockBookings = {
-                '2026-07-15': { status: 'booked', user: 'Uncle Jean' },
-                '2026-07-16': { status: 'booked', user: 'Uncle Jean' },
-                '2026-07-17': { status: 'booked', user: 'Uncle Jean' },
-                '2026-08-01': { status: 'booked', user: 'Sarah' },
-                '2026-08-02': { status: 'booked', user: 'Sarah' },
-            };
-            setBookings(mockBookings);
-            localStorage.setItem('cannes_bookings_2026', JSON.stringify(mockBookings));
-        }
-    }, []);
+  useEffect(() => {
+    // Load bookings from local storage
+    const storedBookings = localStorage.getItem('cannes_bookings_2026');
+    if (storedBookings) {
+      setBookings(JSON.parse(storedBookings));
+    } else {
+      // Mock some initial bookings
+      const mockBookings = {
+        '2026-07-15': { status: 'booked', user: { name: 'Uncle Jean' } },
+        '2026-07-16': { status: 'booked', user: { name: 'Uncle Jean' } },
+        '2026-07-17': { status: 'booked', user: { name: 'Uncle Jean' } },
+        '2026-08-01': { status: 'booked', user: { name: 'Sarah' } },
+        '2026-08-02': { status: 'booked', user: { name: 'Sarah' } },
+      };
+      setBookings(mockBookings);
+      localStorage.setItem('cannes_bookings_2026', JSON.stringify(mockBookings));
+    }
+  }, []);
 
-    const handleDateClick = (month, day) => {
-        const dateStr = formatDate(YEAR, month, day);
+  const handleDateClick = (month, day) => {
+    const dateStr = formatDate(YEAR, month, day);
+    const currentBooking = bookings[dateStr];
 
-        // If already booked by someone else, ignore
-        if (bookings[dateStr] && bookings[dateStr].user !== 'Me') return;
+    // If already booked by someone else, ignore
+    if (currentBooking && currentBooking.user.name !== user.name) return;
 
-        const newBookings = { ...bookings };
+    const newBookings = { ...bookings };
 
-        if (newBookings[dateStr] && newBookings[dateStr].user === 'Me') {
-            // Unbook
-            delete newBookings[dateStr];
-        } else {
-            // Book
-            newBookings[dateStr] = { status: 'booked', user: 'Me' };
-        }
+    if (currentBooking && currentBooking.user.name === user.name) {
+      // Unbook
+      delete newBookings[dateStr];
+    } else {
+      // Book
+      newBookings[dateStr] = { status: 'booked', user: { name: user.name } };
+    }
 
-        setBookings(newBookings);
-        localStorage.setItem('cannes_bookings_2026', JSON.stringify(newBookings));
-    };
+    setBookings(newBookings);
+    localStorage.setItem('cannes_bookings_2026', JSON.stringify(newBookings));
+  };
 
-    const getDayStatus = (month, day) => {
-        const dateStr = formatDate(YEAR, month, day);
-        const booking = bookings[dateStr];
+  const getDayStatus = (month, day) => {
+    const dateStr = formatDate(YEAR, month, day);
+    const booking = bookings[dateStr];
 
-        if (booking) {
-            return booking.user === 'Me' ? 'my-booking' : 'booked';
-        }
-        return 'available';
-    };
+    if (booking) {
+      return booking.user.name === user.name ? 'my-booking' : 'booked';
+    }
+    return 'available';
+  };
 
-    return (
-        <div className="calendar-grid">
-            {MONTHS.map((monthName, monthIndex) => (
-                <div key={monthName} className="month-card">
-                    <h3 className="month-title">{monthName}</h3>
+  const getTooltip = (month, day) => {
+    const dateStr = formatDate(YEAR, month, day);
+    const booking = bookings[dateStr];
+    if (booking) {
+      return booking.user.name === user.name ? 'Booked by You' : `Booked by ${booking.user.name}`;
+    }
+    return 'Available';
+  };
 
-                    <div className="days-header">
-                        {DAYS.map((d, i) => <span key={i} className="day-label">{d}</span>)}
-                    </div>
+  return (
+    <div className="calendar-grid">
+      {MONTHS.map((monthName, monthIndex) => (
+        <div key={monthName} className="month-card">
+          <h3 className="month-title">{monthName}</h3>
 
-                    <div className="days-grid">
-                        {/* Empty cells for start of month */}
-                        {Array(getFirstDayOfMonth(YEAR, monthIndex)).fill(null).map((_, i) => (
-                            <div key={`empty-${i}`} className="day-cell empty" />
-                        ))}
+          <div className="days-header">
+            {DAYS.map((d, i) => <span key={i} className="day-label">{d}</span>)}
+          </div>
 
-                        {/* Days */}
-                        {Array(getDaysInMonth(YEAR, monthIndex)).fill(null).map((_, i) => {
-                            const day = i + 1;
-                            const status = getDayStatus(monthIndex, day);
-                            return (
-                                <button
-                                    key={day}
-                                    onClick={() => handleDateClick(monthIndex, day)}
-                                    className={`day-cell ${status}`}
-                                    title={status === 'booked' ? 'Booked' : 'Available'}
-                                >
-                                    {day}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
+          <div className="days-grid">
+            {/* Empty cells for start of month */}
+            {Array(getFirstDayOfMonth(YEAR, monthIndex)).fill(null).map((_, i) => (
+              <div key={`empty-${i}`} className="day-cell empty" />
             ))}
 
-            <style>{`
+            {/* Days */}
+            {Array(getDaysInMonth(YEAR, monthIndex)).fill(null).map((_, i) => {
+              const day = i + 1;
+              const status = getDayStatus(monthIndex, day);
+              return (
+                <button
+                  key={day}
+                  onClick={() => handleDateClick(monthIndex, day)}
+                  className={`day-cell ${status}`}
+                  title={getTooltip(monthIndex, day)}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      <style>{`
         .calendar-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -166,8 +177,8 @@ const AnnualCalendar = () => {
           background-color: var(--color-azure-light);
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default AnnualCalendar;

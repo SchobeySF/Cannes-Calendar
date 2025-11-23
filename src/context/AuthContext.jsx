@@ -4,25 +4,33 @@ const AuthContext = createContext(null);
 
 export const useAuth = () => useContext(AuthContext);
 
+export const MOCK_USERS = [
+    { username: 'brother', password: '123', name: 'Brother' },
+    { username: 'parents', password: '123', name: 'Parents' },
+    { username: 'me', password: '123', name: 'Me' },
+    { username: 'friend', password: '123', name: 'Family Friend' }
+];
+
 export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
 
     useEffect(() => {
         // Check local storage for existing session
-        const storedAuth = localStorage.getItem('cannes_auth');
-        if (storedAuth === 'true') {
+        const storedUser = localStorage.getItem('cannes_user');
+        if (storedUser) {
             setIsAuthenticated(true);
-            setUser({ name: 'Family Member' });
+            setUser(JSON.parse(storedUser));
         }
     }, []);
 
-    const login = (password) => {
-        // Mock password check - in a real app this would be a backend call
-        if (password === 'cannes2026' || password === 'admin') {
+    const login = (username, password) => {
+        const foundUser = MOCK_USERS.find(u => u.username === username && u.password === password);
+
+        if (foundUser) {
             setIsAuthenticated(true);
-            setUser({ name: 'Family Member' });
-            localStorage.setItem('cannes_auth', 'true');
+            setUser(foundUser);
+            localStorage.setItem('cannes_user', JSON.stringify(foundUser));
             return true;
         }
         return false;
@@ -31,7 +39,7 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setIsAuthenticated(false);
         setUser(null);
-        localStorage.removeItem('cannes_auth');
+        localStorage.removeItem('cannes_user');
     };
 
     return (
