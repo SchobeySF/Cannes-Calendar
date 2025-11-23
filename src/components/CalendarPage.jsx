@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AnnualCalendar from './AnnualCalendar';
 import AdminPage from './AdminPage';
+import ProfileSettings from './ProfileSettings';
 
 const CalendarPage = () => {
   const { logout, user } = useAuth();
   const [view, setView] = useState('calendar'); // 'calendar' or 'admin'
+  const [showProfile, setShowProfile] = useState(false);
 
   return (
     <div className="calendar-page">
@@ -20,7 +22,7 @@ const CalendarPage = () => {
               <div className="legend">
                 <span className="legend-item"><span className="dot available"></span>Available</span>
                 <span className="legend-item"><span className="dot booked"></span>Booked</span>
-                <span className="legend-item"><span className="dot my-booking"></span>My Booking</span>
+                <span className="legend-item"><span className="dot my-booking" style={{ background: user.color }}></span>My Booking</span>
               </div>
             )}
 
@@ -34,6 +36,14 @@ const CalendarPage = () => {
               </button>
             )}
 
+            <button
+              onClick={() => setShowProfile(true)}
+              className="btn btn-outline"
+              style={{ border: 'none', padding: '6px 12px' }}
+            >
+              Profile
+            </button>
+
             <button onClick={logout} className="btn btn-outline">
               Sign Out
             </button>
@@ -44,6 +54,8 @@ const CalendarPage = () => {
       <main className="container">
         {view === 'calendar' ? <AnnualCalendar /> : <AdminPage />}
       </main>
+
+      {showProfile && <ProfileSettings onClose={() => setShowProfile(false)} />}
 
       <style>{`
         .app-header {
