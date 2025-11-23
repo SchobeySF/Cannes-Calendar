@@ -1,0 +1,75 @@
+:root {
+  /* South of France Palette */
+  --color-lavender: #E6E6FA;
+  --color-lavender-dark: #967BB6;
+  --color-ocher: #CC7722;
+  --color-ocher-light: #F4A460;
+  --color-azure: #007FFF;
+  --color-azure-light: #87CEEB;
+  --color-olive: #808000;
+  --color-cream: #FFFDD0;
+  --color-sand: #F4A460;
+  --color-terracotta: #E2725B;
+  
+  /* Functional Colors */
+  --bg-primary: #FFFAF0; /* Floral White */
+  --bg-secondary: #FFFFFF;
+  --text-primary: #2C3E50;
+  --text-secondary: #5D6D7E;
+  --accent-primary: var(--color-lavender-dark);
+  --accent-secondary: var(--color-ocher);
+  
+  /* Typography */
+  --font-heading: 'Playfair Display', serif;
+  --font-body: 'Outfit', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+/* Utility Classes */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #7a5c9e;
+  transform: translateY(-1px);
+}
