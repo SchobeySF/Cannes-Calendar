@@ -1,35 +1,51 @@
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AnnualCalendar from './AnnualCalendar';
+import AdminPage from './AdminPage';
 
 const CalendarPage = () => {
-    const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const [view, setView] = useState('calendar'); // 'calendar' or 'admin'
 
-    return (
-        <div className="calendar-page">
-            <header className="app-header">
-                <div className="container header-content">
-                    <div className="brand">
-                        <h2>Maison de Cannes</h2>
-                        <span className="year-badge">2026</span>
-                    </div>
-                    <div className="user-controls">
-                        <div className="legend">
-                            <span className="legend-item"><span className="dot available"></span>Available</span>
-                            <span className="legend-item"><span className="dot booked"></span>Booked</span>
-                            <span className="legend-item"><span className="dot my-booking"></span>My Booking</span>
-                        </div>
-                        <button onClick={logout} className="btn btn-outline">
-                            Sign Out
-                        </button>
-                    </div>
-                </div>
-            </header>
+  return (
+    <div className="calendar-page">
+      <header className="app-header">
+        <div className="container header-content">
+          <div className="brand">
+            <h2>Maison de Cannes</h2>
+            <span className="year-badge">2026</span>
+          </div>
+          <div className="user-controls">
+            {view === 'calendar' && (
+              <div className="legend">
+                <span className="legend-item"><span className="dot available"></span>Available</span>
+                <span className="legend-item"><span className="dot booked"></span>Booked</span>
+                <span className="legend-item"><span className="dot my-booking"></span>My Booking</span>
+              </div>
+            )}
 
-            <main className="container">
-                <AnnualCalendar />
-            </main>
+            {user.role === 'admin' && (
+              <button
+                onClick={() => setView(view === 'calendar' ? 'admin' : 'calendar')}
+                className="btn btn-primary"
+                style={{ fontSize: '0.9rem', padding: '6px 16px' }}
+              >
+                {view === 'calendar' ? 'Admin Dashboard' : 'Back to Calendar'}
+              </button>
+            )}
 
-            <style>{`
+            <button onClick={logout} className="btn btn-outline">
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="container">
+        {view === 'calendar' ? <AnnualCalendar /> : <AdminPage />}
+      </main>
+
+      <style>{`
         .app-header {
           background: white;
           padding: 1rem 0;
@@ -112,8 +128,8 @@ const CalendarPage = () => {
           }
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default CalendarPage;
