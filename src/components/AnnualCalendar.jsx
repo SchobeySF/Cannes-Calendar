@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 const AnnualCalendar = ({ year = 2026 }) => {
   const { user, allUsers } = useAuth();
+  const [bookings, setBookings] = useState({});
   const [hoveredBooking, setHoveredBooking] = useState(null);
 
   useEffect(() => {
