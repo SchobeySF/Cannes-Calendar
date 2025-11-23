@@ -2,32 +2,37 @@ import { useState, useEffect } from 'react';
 import { MONTHS, DAYS, getDaysInMonth, getFirstDayOfMonth, formatDate, isDatePast } from '../utils/dateUtils';
 import { useAuth } from '../context/AuthContext';
 
-const AnnualCalendar = () => {
-  const YEAR = 2026;
+const AnnualCalendar = ({ year = 2026 }) => {
   const { user, allUsers } = useAuth();
   const [bookings, setBookings] = useState({});
 
   useEffect(() => {
-    // Load bookings from local storage
-    const storedBookings = localStorage.getItem('cannes_bookings_2026');
+    // Load bookings from local storage for the specific year
+    const storageKey = `cannes_bookings_${year}`;
+    const storedBookings = localStorage.getItem(storageKey);
+
     if (storedBookings) {
       setBookings(JSON.parse(storedBookings));
     } else {
-      // Mock some initial bookings
-      const mockBookings = {
-        '2026-07-15': { status: 'booked', user: { name: 'Uncle Jean', username: 'brother' } },
-        '2026-07-16': { status: 'booked', user: { name: 'Uncle Jean', username: 'brother' } },
-        '2026-07-17': { status: 'booked', user: { name: 'Uncle Jean', username: 'brother' } },
-        '2026-08-01': { status: 'booked', user: { name: 'Sarah', username: 'friend' } },
-        '2026-08-02': { status: 'booked', user: { name: 'Sarah', username: 'friend' } },
-      };
-      setBookings(mockBookings);
-      localStorage.setItem('cannes_bookings_2026', JSON.stringify(mockBookings));
+      // Mock some initial bookings only for 2026
+      if (year === 2026) {
+        const mockBookings = {
+          '2026-07-15': { status: 'booked', user: { name: 'Uncle Jean', username: 'brother' } },
+          '2026-07-16': { status: 'booked', user: { name: 'Uncle Jean', username: 'brother' } },
+          '2026-07-17': { status: 'booked', user: { name: 'Uncle Jean', username: 'brother' } },
+          '2026-08-01': { status: 'booked', user: { name: 'Sarah', username: 'friend' } },
+          '2026-08-02': { status: 'booked', user: { name: 'Sarah', username: 'friend' } },
+        };
+        setBookings(mockBookings);
+        localStorage.setItem(storageKey, JSON.stringify(mockBookings));
+      } else {
+        setBookings({});
+      }
     }
-  }, []);
+  }, [year]);
 
   const handleDateClick = (month, day) => {
-    const dateStr = formatDate(YEAR, month, day);
+    const dateStr = formatDate(year, month, day);
     const currentBooking = bookings[dateStr];
 
     // If booked by someone else
@@ -56,7 +61,7 @@ const AnnualCalendar = () => {
     }
 
     setBookings(newBookings);
-    localStorage.setItem('cannes_bookings_2026', JSON.stringify(newBookings));
+    localStorage.setItem(`cannes_bookings_${year}`, JSON.stringify(newBookings));
   };
 
   const getUserColor = (username) => {
@@ -65,7 +70,7 @@ const AnnualCalendar = () => {
   };
 
   const getDayStyle = (month, day) => {
-    const dateStr = formatDate(YEAR, month, day);
+    const dateStr = formatDate(year, month, day);
     const booking = bookings[dateStr];
 
     if (booking) {
@@ -76,7 +81,7 @@ const AnnualCalendar = () => {
   };
 
   const getTooltip = (month, day) => {
-    const dateStr = formatDate(YEAR, month, day);
+    const dateStr = formatDate(year, month, day);
     const booking = bookings[dateStr];
     if (booking) {
       return booking.user.username === user.username ? 'Booked by You' : `Booked by ${booking.user.name}`;
@@ -96,14 +101,14 @@ const AnnualCalendar = () => {
 
           <div className="days-grid">
             {/* Empty cells for start of month */}
-            {Array(getFirstDayOfMonth(YEAR, monthIndex)).fill(null).map((_, i) => (
+            {Array(getFirstDayOfMonth(year, monthIndex)).fill(null).map((_, i) => (
               <div key={`empty-${i}`} className="day-cell empty" />
             ))}
 
             {/* Days */}
-            {Array(getDaysInMonth(YEAR, monthIndex)).fill(null).map((_, i) => {
+            {Array(getDaysInMonth(year, monthIndex)).fill(null).map((_, i) => {
               const day = i + 1;
-              const dateStr = formatDate(YEAR, monthIndex, day);
+              const dateStr = formatDate(year, monthIndex, day);
               const isBooked = !!bookings[dateStr];
 
               return (

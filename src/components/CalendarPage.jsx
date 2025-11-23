@@ -8,6 +8,9 @@ const CalendarPage = () => {
   const { logout, user } = useAuth();
   const [view, setView] = useState('calendar'); // 'calendar' or 'admin'
   const [showProfile, setShowProfile] = useState(false);
+  const [currentYear, setCurrentYear] = useState(2026);
+
+  const YEARS = [2026, 2027, 2028, 2029, 2030];
 
   return (
     <div className="calendar-page">
@@ -15,8 +18,23 @@ const CalendarPage = () => {
         <div className="container header-content">
           <div className="brand">
             <h2>Maison de Cannes</h2>
-            <span className="year-badge">2026</span>
+            <span className="year-badge">{currentYear}</span>
           </div>
+
+          {view === 'calendar' && (
+            <div className="year-nav">
+              {YEARS.map(year => (
+                <button
+                  key={year}
+                  onClick={() => setCurrentYear(year)}
+                  className={`year-btn ${currentYear === year ? 'active' : ''}`}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="user-controls">
             {view === 'calendar' && (
               <div className="legend">
@@ -52,7 +70,7 @@ const CalendarPage = () => {
       </header>
 
       <main className="container">
-        {view === 'calendar' ? <AnnualCalendar /> : <AdminPage />}
+        {view === 'calendar' ? <AnnualCalendar year={currentYear} /> : <AdminPage />}
       </main>
 
       {showProfile && <ProfileSettings onClose={() => setShowProfile(false)} />}
@@ -72,6 +90,8 @@ const CalendarPage = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: wrap;
+          gap: 1rem;
         }
 
         .brand {
@@ -87,6 +107,36 @@ const CalendarPage = () => {
           border-radius: 12px;
           font-size: 0.9rem;
           font-weight: 600;
+        }
+        
+        .year-nav {
+          display: flex;
+          gap: 0.5rem;
+          background: var(--bg-primary);
+          padding: 4px;
+          border-radius: 20px;
+        }
+        
+        .year-btn {
+          border: none;
+          background: transparent;
+          padding: 4px 12px;
+          border-radius: 16px;
+          font-size: 0.9rem;
+          color: var(--text-secondary);
+          transition: all 0.2s;
+        }
+        
+        .year-btn:hover {
+          color: var(--text-primary);
+          background: rgba(0,0,0,0.05);
+        }
+        
+        .year-btn.active {
+          background: var(--color-mediterranean);
+          color: white;
+          font-weight: 600;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .user-controls {
@@ -129,7 +179,7 @@ const CalendarPage = () => {
           color: var(--text-primary);
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
           .header-content {
             flex-direction: column;
             gap: 1rem;
@@ -137,6 +187,12 @@ const CalendarPage = () => {
           .user-controls {
             flex-direction: column;
             gap: 1rem;
+          }
+          .year-nav {
+            order: 3;
+            width: 100%;
+            justify-content: center;
+            overflow-x: auto;
           }
         }
       `}</style>
