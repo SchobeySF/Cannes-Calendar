@@ -27,7 +27,7 @@ const LoginPage = () => {
       }}
     >
       <div className="login-card">
-        <h1>Maison de Cannes</h1>
+        <h1>Maison Schober</h1>
         <p className="subtitle">Bienvenue à notre maison</p>
 
         <form onSubmit={handleSubmit}>
@@ -68,12 +68,12 @@ const LoginPage = () => {
           background: #07074cd4;
           padding: 3rem;
           border-radius: 16px;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.2), 0 0 30px rgba(255, 255, 255, 0.3);
+          box-shadow: 0 10px 25px rgba(0,0,0,0.2), 0 0 40px rgba(255, 255, 255, 0.5);
           text-align: center;
           max-width: 400px;
           width: 90%;
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         h1 {
