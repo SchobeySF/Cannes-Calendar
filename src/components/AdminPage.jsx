@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { doc, setDoc, writeBatch, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, setDoc, writeBatch, collection, getDocs, query, where, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { formatDate } from '../utils/dateUtils';
 
@@ -17,6 +17,12 @@ const AdminPage = () => {
   // Edit User State
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', username: '', password: '', role: 'user', color: '' });
+
+  // Booking Management State
+  const [manageDate, setManageDate] = useState('');
+  const [dateBookings, setDateBookings] = useState([]);
+  const [selectedBookingUsers, setSelectedBookingUsers] = useState([]);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   const handleAddUser = (e) => {
     e.preventDefault();
@@ -147,6 +153,86 @@ const AdminPage = () => {
     }
   };
 
+  const fetchBookingsForDate = async () => {
+    if (!manageDate) {
+      alert("Please select a date first.");
+      return;
+    }
+
+    const year = manageDate.split('-')[0];
+    const dateStr = manageDate;
+
+    try {
+      const docRef = doc(db, 'bookings', year);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data().data || {};
+        // Normalize
+        let bookingsForDate = data[dateStr];
+        if (!bookingsForDate) bookingsForDate = [];
+        else if (!Array.isArray(bookingsForDate)) bookingsForDate = [bookingsForDate];
+
+        setDateBookings(bookingsForDate);
+        setShowBookingModal(true);
+        setSelectedBookingUsers([]);
+      } else {
+        setDateBookings([]);
+        setShowBookingModal(true);
+      }
+    } catch (e) {
+      console.error("Error fetching bookings:", e);
+      alert("Failed to fetch bookings.");
+    }
+  };
+
+  const handleRemoveUsersFromDate = async () => {
+    if (selectedBookingUsers.length === 0) return;
+
+    const year = manageDate.split('-')[0];
+    const dateStr = manageDate;
+
+    try {
+      const docRef = doc(db, 'bookings', year);
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) return;
+
+      const data = docSnap.data().data || {};
+      let currentBookings = data[dateStr];
+
+      // Normalize
+      if (!Array.isArray(currentBookings)) currentBookings = [currentBookings];
+
+      const updatedBookings = currentBookings.filter(b => !selectedBookingUsers.includes(b.user.username));
+
+      const newData = { ...data };
+      if (updatedBookings.length === 0) {
+        delete newData[dateStr];
+      } else {
+        newData[dateStr] = updatedBookings;
+      }
+
+      await setDoc(docRef, { data: newData });
+
+      // Update local state
+      setDateBookings(updatedBookings);
+      setSelectedBookingUsers([]);
+      alert("Users removed successfully.");
+    } catch (e) {
+      console.error("Error updating bookings:", e);
+      alert("Failed to update bookings.");
+    }
+  };
+
+  const toggleBookingUserSelection = (username) => {
+    if (selectedBookingUsers.includes(username)) {
+      setSelectedBookingUsers(selectedBookingUsers.filter(u => u !== username));
+    } else {
+      setSelectedBookingUsers([...selectedBookingUsers, username]);
+    }
+  };
+
   return (
     <div className="admin-container">
       <h2>Admin Dashboard</h2>
@@ -241,6 +327,25 @@ const AdminPage = () => {
         </div>
 
         {currentUser.role === 'super-admin' && (
+          <div className="card booking-manager-card">
+            <h3>Manage Bookings</h3>
+            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+              Select a date to view and remove bookings.
+            </p>
+            <div className="form-group">
+              <input
+                type="date"
+                value={manageDate}
+                onChange={(e) => setManageDate(e.target.value)}
+              />
+            </div>
+            <button onClick={fetchBookingsForDate} className="btn btn-primary">
+              Manage Date
+            </button>
+          </div>
+        )}
+
+        {currentUser.role === 'super-admin' && (
           <div className="card danger-zone-card">
             <h3 style={{ color: 'var(--color-terracotta)' }}>Danger Zone</h3>
             <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
@@ -304,6 +409,47 @@ const AdminPage = () => {
                 <button type="submit" className="btn btn-primary">Save Changes</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Management Modal */}
+      {showBookingModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Manage: {manageDate}</h3>
+            {dateBookings.length === 0 ? (
+              <p>No bookings for this date.</p>
+            ) : (
+              <div className="booking-list">
+                {dateBookings.map((b, idx) => (
+                  <div key={idx} className="booking-item">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={selectedBookingUsers.includes(b.user.username)}
+                        onChange={() => toggleBookingUserSelection(b.user.username)}
+                      />
+                      <span className="booking-name">{b.user.name}</span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button onClick={() => setShowBookingModal(false)} className="btn btn-outline">Close</button>
+              {dateBookings.length > 0 && (
+                <button
+                  onClick={handleRemoveUsersFromDate}
+                  disabled={selectedBookingUsers.length === 0}
+                  className="btn"
+                  style={{ backgroundColor: 'var(--color-terracotta)', color: 'white', opacity: selectedBookingUsers.length === 0 ? 0.5 : 1 }}
+                >
+                  Remove Selected
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
