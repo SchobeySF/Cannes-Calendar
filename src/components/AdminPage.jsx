@@ -49,89 +49,15 @@ const AdminPage = () => {
     setEditingUser(null);
   };
 
-  const handleImport2026 = async () => {
-    if (!window.confirm("This will OVERWRITE all bookings for 2026. Are you sure?")) return;
+  const handleClearYear = async (year) => {
+    if (!window.confirm(`Are you sure you want to DELETE ALL DATA for ${year}? This cannot be undone.`)) return;
 
-    // 1. Define Users from Image
-    const importUsers = [
-      { name: 'Hannes', username: 'hannes', color: '#4169E1', role: 'user' }, // Royal Blue
-      { name: 'Agnes', username: 'agnes', color: '#00008B', role: 'user' }, // Dark Blue
-      { name: 'Sylvia & Jens', username: 'sylvia_jens', color: '#40E0D0', role: 'user' }, // Turquoise
-      { name: 'Oliver', username: 'oliver', color: '#191970', role: 'user' }, // Midnight Blue
-      { name: 'Sylvia', username: 'sylvia', color: '#DA70D6', role: 'user' }, // Orchid
-      { name: 'Tom', username: 'tom', color: '#FFA500', role: 'user' } // Orange
-    ];
-
-    // 2. Ensure Users Exist
-    for (const u of importUsers) {
-      const exists = allUsers.some(existing => existing.username === u.username);
-      if (!exists) {
-        await addUser({ ...u, password: '123' }); // Default password
-      }
-    }
-
-    // 3. Define Bookings (Ranges)
-    // Format: [Start, End, Username] (Inclusive)
-    const ranges = [
-      ['2026-02-07', '2026-02-14', 'hannes'],
-      ['2026-02-21', '2026-02-28', 'agnes'],
-      ['2026-03-02', '2026-03-15', 'sylvia_jens'],
-      ['2026-03-21', '2026-04-04', 'oliver'],
-      ['2026-03-28', '2026-04-11', 'sylvia'],
-      ['2026-04-04', '2026-04-25', 'sylvia_jens'],
-      ['2026-05-09', '2026-05-23', 'sylvia_jens'],
-      ['2026-05-23', '2026-05-31', 'sylvia'],
-      ['2026-06-01', '2026-06-10', 'sylvia'],
-      ['2026-06-06', '2026-06-17', 'agnes'],
-      ['2026-06-10', '2026-06-24', 'sylvia_jens'],
-      ['2026-06-20', '2026-07-03', 'tom'],
-      ['2026-07-02', '2026-07-15', 'tom'],
-      ['2026-07-15', '2026-08-05', 'sylvia_jens'],
-      ['2026-08-02', '2026-08-16', 'sylvia_jens'],
-      ['2026-08-15', '2026-08-31', 'sylvia'],
-      ['2026-09-01', '2026-09-10', 'sylvia'],
-      ['2026-09-01', '2026-09-15', 'sylvia_jens'],
-      ['2026-10-15', '2026-10-31', 'sylvia_jens'],
-      ['2026-11-02', '2026-11-15', 'sylvia_jens']
-    ];
-
-    // 4. Generate Booking Data
-    const newBookings = {};
-
-    const getDates = (start, end) => {
-      const dates = [];
-      let current = new Date(start);
-      const stop = new Date(end);
-      while (current <= stop) {
-        dates.push(current.toISOString().split('T')[0]);
-        current.setDate(current.getDate() + 1);
-      }
-      return dates;
-    };
-
-    for (const [start, end, username] of ranges) {
-      const dates = getDates(start, end);
-      const userObj = importUsers.find(u => u.username === username) || allUsers.find(u => u.username === username);
-
-      dates.forEach(date => {
-        if (!newBookings[date]) newBookings[date] = [];
-        // Check if already booked by this user (avoid duplicates from overlapping ranges in list)
-        if (!newBookings[date].some(b => b.user.username === username)) {
-          newBookings[date].push({
-            status: 'booked',
-            user: { name: userObj.name, username: userObj.username }
-          });
-        }
-      });
-    }
-
-    // 5. Save to Firestore
     try {
-      await setDoc(doc(db, 'bookings', '2026'), { data: newBookings });
-      alert("Import successful! Please refresh the calendar.");
+      await setDoc(doc(db, 'bookings', String(year)), { data: {} });
+      alert(`All data for ${year} has been deleted.`);
     } catch (e) {
       console.error(e);
-      alert("Import failed: " + e.message);
+      alert("Deletion failed: " + e.message);
     }
   };
 
@@ -176,6 +102,7 @@ const AdminPage = () => {
               >
                 <option value="user">User</option>
                 <option value="admin">Admin</option>
+                <option value="super-admin">Super-Admin</option>
                 <option value="guest">Guest</option>
               </select>
             </div>
@@ -217,15 +144,21 @@ const AdminPage = () => {
           </div>
         </div>
 
-        <div className="card data-tools-card">
-          <h3>Data Tools</h3>
-          <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
-            Use this to populate the calendar with data from the 2026 plan image.
-          </p>
-          <button onClick={handleImport2026} className="btn btn-primary" style={{ backgroundColor: '#2c3e50' }}>
-            Import 2026 Data from Image
-          </button>
-        </div>
+        {currentUser.role === 'super-admin' && (
+          <div className="card danger-zone-card">
+            <h3 style={{ color: 'var(--color-terracotta)' }}>Danger Zone</h3>
+            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+              These actions are irreversible.
+            </p>
+            <button
+              onClick={() => handleClearYear(2026)}
+              className="btn"
+              style={{ backgroundColor: 'var(--color-terracotta)', color: 'white', border: 'none' }}
+            >
+              Delete All 2026 Data
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Edit Modal */}
@@ -257,6 +190,7 @@ const AdminPage = () => {
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
+                  <option value="super-admin">Super-Admin</option>
                   <option value="guest">Guest</option>
                 </select>
               </div>

@@ -4,11 +4,94 @@ import { useAuth } from '../context/AuthContext';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
+const BookingManagementDialog = ({ date, bookings, onClose, onRemove }) => {
+  const [selectedUsers, setSelectedUsers] = useState([]);
+
+  const toggleUser = (username) => {
+    if (selectedUsers.includes(username)) {
+      setSelectedUsers(selectedUsers.filter(u => u !== username));
+    } else {
+      setSelectedUsers([...selectedUsers, username]);
+    }
+  };
+
+  const handleRemoveSelected = () => {
+    onRemove(selectedUsers);
+  };
+
+  const handleRemoveAll = () => {
+    onRemove(bookings.map(b => b.user.username));
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <h3>Manage Bookings: {date}</h3>
+        <div className="booking-list">
+          {bookings.map((b, idx) => (
+            <div key={idx} className="booking-item">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={selectedUsers.includes(b.user.username)}
+                  onChange={() => toggleUser(b.user.username)}
+                />
+                <span className="booking-name" style={{ color: 'black' }}>{b.user.name}</span>
+              </label>
+            </div>
+          ))}
+        </div>
+        <div className="modal-actions">
+          <button onClick={onClose} className="btn btn-outline" style={{ color: '#333', borderColor: '#ccc' }}>Cancel</button>
+          <button
+            onClick={handleRemoveSelected}
+            disabled={selectedUsers.length === 0}
+            className="btn"
+            style={{ backgroundColor: 'var(--color-terracotta)', color: 'white', opacity: selectedUsers.length === 0 ? 0.5 : 1 }}
+          >
+            Remove Selected
+          </button>
+          <button
+            onClick={handleRemoveAll}
+            className="btn"
+            style={{ backgroundColor: 'red', color: 'white' }}
+          >
+            Remove All
+          </button>
+        </div>
+      </div>
+      <style>{`
+        .booking-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          margin: 1rem 0;
+          max-height: 300px;
+          overflow-y: auto;
+        }
+        .booking-item {
+          padding: 0.5rem;
+          border-bottom: 1px solid #eee;
+        }
+        .booking-item label {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+        }
+      `}</style>
+    </div>
+  );
+};
+
 const AnnualCalendar = ({ year = 2026 }) => {
   const { user, allUsers } = useAuth();
   const [bookings, setBookings] = useState({});
   const [hoveredBooking, setHoveredBooking] = useState(null);
   const lastSelectedDateRef = useRef(null);
+
+  // Super Admin Dialog State
+  const [managementDialog, setManagementDialog] = useState(null); // { dateStr, bookings }
 
   useEffect(() => {
     // Real-time listener for bookings for the specific year
@@ -103,6 +186,18 @@ const AnnualCalendar = ({ year = 2026 }) => {
     if (user.role === 'guest') return;
 
     const dateStr = formatDate(year, month, day);
+
+    // Super-Admin Granular Management
+    if (user.role === 'super-admin') {
+      const dateBookings = bookings[dateStr];
+      if (dateBookings && dateBookings.length > 0) {
+        // Open management dialog if there are bookings
+        setManagementDialog({ dateStr, bookings: dateBookings });
+        return;
+      }
+      // If no bookings, behave normally (allow super-admin to book for themselves)
+    }
+
     let newBookings = { ...bookings };
 
     // Shift Click Logic
@@ -141,6 +236,25 @@ const AnnualCalendar = ({ year = 2026 }) => {
 
     lastSelectedDateRef.current = dateStr;
     await updateBookings(newBookings);
+  };
+
+  const handleDialogRemove = async (usernamesToRemove) => {
+    if (!managementDialog) return;
+
+    const { dateStr } = managementDialog;
+    const currentBookings = bookings[dateStr] || [];
+
+    const updatedBookings = currentBookings.filter(b => !usernamesToRemove.includes(b.user.username));
+
+    const newBookingsMap = { ...bookings };
+    if (updatedBookings.length === 0) {
+      delete newBookingsMap[dateStr];
+    } else {
+      newBookingsMap[dateStr] = updatedBookings;
+    }
+
+    await updateBookings(newBookingsMap);
+    setManagementDialog(null);
   };
 
   const getUserColor = (username) => {
@@ -243,6 +357,15 @@ const AnnualCalendar = ({ year = 2026 }) => {
             <div key={i} className="tooltip-name">{name}</div>
           ))}
         </div>
+      )}
+
+      {managementDialog && (
+        <BookingManagementDialog
+          date={managementDialog.dateStr}
+          bookings={managementDialog.bookings}
+          onClose={() => setManagementDialog(null)}
+          onRemove={handleDialogRemove}
+        />
       )}
 
       <style>{`
