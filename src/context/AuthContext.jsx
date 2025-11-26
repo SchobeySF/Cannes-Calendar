@@ -96,7 +96,7 @@ export const AuthProvider = ({ children }) => {
             ...newUser,
             ...newUser,
             role: newUser.role || 'user',
-            color: randomColor
+            color: newUser.color || randomColor
         });
     };
 
