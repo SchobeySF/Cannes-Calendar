@@ -42,7 +42,7 @@ const CalendarPage = () => {
               </div>
             )}
 
-            {user.role === 'admin' && (
+            {(user.role === 'admin' || user.role === 'super-admin') && (
               <button
                 onClick={() => setView(view === 'calendar' ? 'admin' : 'calendar')}
                 className="btn btn-primary"
