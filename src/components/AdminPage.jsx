@@ -8,6 +8,7 @@ const AdminPage = () => {
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newName, setNewName] = useState('');
+  const [newRole, setNewRole] = useState('user');
   const [error, setError] = useState('');
 
   // Edit User State
@@ -26,10 +27,11 @@ const AdminPage = () => {
       return;
     }
 
-    addUser({ username: newUsername, password: newPassword, name: newName });
+    addUser({ username: newUsername, password: newPassword, name: newName, role: newRole });
     setNewUsername('');
     setNewPassword('');
     setNewName('');
+    setNewRole('user');
     setError('');
   };
 
@@ -75,6 +77,18 @@ const AdminPage = () => {
                 onChange={e => setNewPassword(e.target.value)}
                 placeholder="e.g. 123"
               />
+            </div>
+            <div className="form-group">
+              <label>Role</label>
+              <select
+                value={newRole}
+                onChange={e => setNewRole(e.target.value)}
+                className="role-select"
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+                <option value="guest">Guest</option>
+              </select>
             </div>
             {error && <p className="error">{error}</p>}
             <button type="submit" className="btn btn-primary">Add User</button>
@@ -144,6 +158,7 @@ const AdminPage = () => {
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
+                  <option value="guest">Guest</option>
                 </select>
               </div>
               <div className="form-group">

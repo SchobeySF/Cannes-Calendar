@@ -37,6 +37,7 @@ export const AuthProvider = ({ children }) => {
             const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             if (usersData.length === 0) {
+                console.log("No users found in Firestore. Seeding default users...");
                 // Seed database if empty
                 const batch = writeBatch(db);
                 INITIAL_USERS.forEach(user => {
@@ -44,9 +45,14 @@ export const AuthProvider = ({ children }) => {
                     batch.set(docRef, user);
                 });
                 await batch.commit();
+                console.log("Seeding complete.");
             } else {
+                console.log("Loaded users from Firestore:", usersData.length);
                 setAllUsers(usersData);
             }
+            setLoading(false);
+        }, (error) => {
+            console.error("Error listening to users collection:", error);
             setLoading(false);
         });
 
@@ -88,7 +94,8 @@ export const AuthProvider = ({ children }) => {
 
         await addDoc(collection(db, 'users'), {
             ...newUser,
-            role: 'user',
+            ...newUser,
+            role: newUser.role || 'user',
             color: randomColor
         });
     };

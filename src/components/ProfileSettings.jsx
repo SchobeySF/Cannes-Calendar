@@ -2,48 +2,48 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const ProfileSettings = ({ onClose }) => {
-    const { user, updateUser } = useAuth();
-    const [color, setColor] = useState(user.color || '#87CEEB');
+  const { user, updateUser } = useAuth();
+  const [color, setColor] = useState(user.color || '#87CEEB');
 
-    const handleSave = (e) => {
-        e.preventDefault();
-        updateUser(user.username, { color });
-        onClose();
-    };
+  const handleSave = (e) => {
+    e.preventDefault();
+    updateUser(user.username, { color });
+    onClose();
+  };
 
-    return (
-        <div className="modal-overlay">
-            <div className="modal">
-                <h3>Profile Settings</h3>
-                <form onSubmit={handleSave}>
-                    <div className="form-group">
-                        <label>Display Name</label>
-                        <input value={user.name} disabled className="disabled-input" />
-                        <span className="hint">Contact admin to change name</span>
-                    </div>
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <h3>Profile Settings</h3>
+        <form onSubmit={handleSave}>
+          <div className="form-group">
+            <label>Display Name</label>
+            <input value={user.name} disabled className="disabled-input" />
+            <span className="hint">Contact admin to change name</span>
+          </div>
 
-                    <div className="form-group">
-                        <label>My Booking Color</label>
-                        <div className="color-picker-wrapper">
-                            <input
-                                type="color"
-                                value={color}
-                                onChange={(e) => setColor(e.target.value)}
-                                className="color-input"
-                            />
-                            <span className="color-preview" style={{ backgroundColor: color }}></span>
-                        </div>
-                        <p className="hint">This color will identify your bookings on the calendar.</p>
-                    </div>
+          <div className="form-group">
+            <label>My Booking Color</label>
+            <div className="color-picker-wrapper">
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="color-input"
+              />
 
-                    <div className="modal-actions">
-                        <button type="button" onClick={onClose} className="btn btn-outline">Cancel</button>
-                        <button type="submit" className="btn btn-primary">Save Changes</button>
-                    </div>
-                </form>
             </div>
+            <p className="hint">This color will identify your bookings on the calendar.</p>
+          </div>
 
-            <style>{`
+          <div className="modal-actions">
+            <button type="button" onClick={onClose} className="btn btn-outline">Cancel</button>
+            <button type="submit" className="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+
+      <style>{`
         .modal-overlay {
           position: fixed;
           top: 0;
@@ -127,8 +127,8 @@ const ProfileSettings = ({ onClose }) => {
           margin-top: 2rem;
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default ProfileSettings;

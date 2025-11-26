@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MONTHS, DAYS, getDaysInMonth, getFirstDayOfMonth, formatDate, isDatePast } from '../utils/dateUtils';
 import { useAuth } from '../context/AuthContext';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -8,6 +8,7 @@ const AnnualCalendar = ({ year = 2026 }) => {
   const { user, allUsers } = useAuth();
   const [bookings, setBookings] = useState({});
   const [hoveredBooking, setHoveredBooking] = useState(null);
+  const lastSelectedDateRef = useRef(null);
 
   useEffect(() => {
     // Real-time listener for bookings for the specific year
@@ -15,48 +16,32 @@ const AnnualCalendar = ({ year = 2026 }) => {
 
     const unsubscribe = onSnapshot(bookingsRef, (docSnap) => {
       if (docSnap.exists()) {
-        setBookings(docSnap.data().data || {});
+        console.log("Loaded bookings for year", year);
+        const data = docSnap.data().data || {};
+        // Migration/Normalization: Ensure all entries are arrays
+        const normalizedData = {};
+        Object.keys(data).forEach(key => {
+          if (Array.isArray(data[key])) {
+            normalizedData[key] = data[key];
+          } else {
+            // Convert legacy single object to array
+            normalizedData[key] = [data[key]];
+          }
+        });
+        setBookings(normalizedData);
       } else {
-        // If no document exists for this year, we start empty
-        // We don't auto-create it here to avoid empty writes, 
-        // we'll create it on first booking.
+        console.log("No bookings found for year", year);
         setBookings({});
       }
+    }, (error) => {
+      console.error("Error listening to bookings:", error);
     });
 
     return () => unsubscribe();
   }, [year]);
 
-  const handleDateClick = async (month, day) => {
-    const dateStr = formatDate(year, month, day);
-    const currentBooking = bookings[dateStr];
-
-    // If booked by someone else
-    if (currentBooking && currentBooking.user.username !== user.username) {
-      // Allow override if admin
-      if (user.role === 'admin') {
-        const confirmOverride = window.confirm(`Override booking by ${currentBooking.user.name}?`);
-        if (!confirmOverride) return;
-      } else {
-        return; // Regular user cannot touch others' bookings
-      }
-    }
-
-    const newBookings = { ...bookings };
-
-    // If it's my booking OR I'm admin overriding someone else's
-    if (currentBooking) {
-      // Unbook
-      delete newBookings[dateStr];
-    } else {
-      // Book
-      newBookings[dateStr] = {
-        status: 'booked',
-        user: { name: user.name, username: user.username }
-      };
-    }
-
-    // Optimistic update (optional, but good for UI responsiveness)
+  const updateBookings = async (newBookings) => {
+    // Optimistic update
     setBookings(newBookings);
 
     // Save to Firestore
@@ -66,9 +51,96 @@ const AnnualCalendar = ({ year = 2026 }) => {
       });
     } catch (error) {
       console.error("Error saving booking:", error);
-      // Revert on error (could reload from server or show alert)
       alert("Failed to save booking. Please try again.");
     }
+  };
+
+  const toggleBooking = (currentBookings, dateStr) => {
+    const dateBookings = currentBookings[dateStr] || [];
+    const myBookingIndex = dateBookings.findIndex(b => b.user.username === user.username);
+
+    if (myBookingIndex >= 0) {
+      // Remove my booking
+      const updated = [...dateBookings];
+      updated.splice(myBookingIndex, 1);
+      if (updated.length === 0) {
+        delete currentBookings[dateStr];
+      } else {
+        currentBookings[dateStr] = updated;
+      }
+    } else {
+      // Add my booking
+      currentBookings[dateStr] = [
+        ...dateBookings,
+        {
+          status: 'booked',
+          user: { name: user.name, username: user.username }
+        }
+      ];
+    }
+    return currentBookings;
+  };
+
+  const getDatesInRange = (startStr, endStr) => {
+    // Simple date range calculation
+    // Format is YYYY-MM-DD
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    const dates = [];
+
+    // Ensure start is before end
+    const [s, e] = start < end ? [start, end] : [end, start];
+
+    const current = new Date(s);
+    while (current <= e) {
+      dates.push(current.toISOString().split('T')[0]);
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  };
+
+  const handleDateClick = async (month, day, e) => {
+    if (user.role === 'guest') return;
+
+    const dateStr = formatDate(year, month, day);
+    let newBookings = { ...bookings };
+
+    // Shift Click Logic
+    if (e.shiftKey && lastSelectedDateRef.current) {
+      const datesToToggle = getDatesInRange(lastSelectedDateRef.current, dateStr);
+
+      // Determine intent based on the clicked date
+      // If clicked date is NOT booked by me, we want to BOOK the range
+      // If clicked date IS booked by me, we want to UNBOOK the range
+      const clickedDateBookings = bookings[dateStr] || [];
+      const isClickedDateBookedByMe = clickedDateBookings.some(b => b.user.username === user.username);
+      const intentToBook = !isClickedDateBookedByMe;
+
+      datesToToggle.forEach(d => {
+        const dBookings = newBookings[d] || [];
+        const myIndex = dBookings.findIndex(b => b.user.username === user.username);
+
+        if (intentToBook) {
+          if (myIndex === -1) {
+            newBookings[d] = [...dBookings, { status: 'booked', user: { name: user.name, username: user.username } }];
+          }
+        } else {
+          if (myIndex >= 0) {
+            const updated = [...dBookings];
+            updated.splice(myIndex, 1);
+            if (updated.length === 0) delete newBookings[d];
+            else newBookings[d] = updated;
+          }
+        }
+      });
+
+    } else {
+      // Normal Click
+      newBookings = toggleBooking(newBookings, dateStr);
+    }
+
+    lastSelectedDateRef.current = dateStr;
+    await updateBookings(newBookings);
   };
 
   const getUserColor = (username) => {
@@ -78,22 +150,36 @@ const AnnualCalendar = ({ year = 2026 }) => {
 
   const getDayStyle = (month, day) => {
     const dateStr = formatDate(year, month, day);
-    const booking = bookings[dateStr];
+    const dateBookings = bookings[dateStr];
 
-    if (booking) {
-      const color = getUserColor(booking.user.username);
+    if (!dateBookings || dateBookings.length === 0) return {};
+
+    if (dateBookings.length === 1) {
+      const color = getUserColor(dateBookings[0].user.username);
       return { backgroundColor: color, color: 'white' };
     }
-    return {};
+
+    // Multiple bookings - Conic Gradient
+    const colors = dateBookings.map(b => getUserColor(b.user.username));
+    const segmentSize = 100 / colors.length;
+    const gradientParts = colors.map((c, i) => {
+      return `${c} ${i * segmentSize}% ${(i + 1) * segmentSize}%`;
+    });
+
+    return {
+      background: `conic-gradient(${gradientParts.join(', ')})`,
+      color: 'white'
+    };
   };
 
   const handleMouseEnter = (e, month, day) => {
     const dateStr = formatDate(year, month, day);
-    const booking = bookings[dateStr];
-    if (booking) {
+    const dateBookings = bookings[dateStr];
+
+    if (dateBookings && dateBookings.length > 0) {
       const rect = e.target.getBoundingClientRect();
       setHoveredBooking({
-        name: booking.user.name,
+        names: dateBookings.map(b => b.user.name),
         x: rect.left + rect.width / 2,
         y: rect.top - 10
       });
@@ -124,18 +210,19 @@ const AnnualCalendar = ({ year = 2026 }) => {
             {Array(getDaysInMonth(year, monthIndex)).fill(null).map((_, i) => {
               const day = i + 1;
               const dateStr = formatDate(year, monthIndex, day);
-              const isBooked = !!bookings[dateStr];
+              const dateBookings = bookings[dateStr];
+              const isBooked = dateBookings && dateBookings.length > 0;
 
               return (
                 <button
                   key={day}
-                  onClick={() => handleDateClick(monthIndex, day)}
+                  onClick={(e) => handleDateClick(monthIndex, day, e)}
                   onMouseEnter={(e) => handleMouseEnter(e, monthIndex, day)}
                   onMouseLeave={handleMouseLeave}
-                  className={`day-cell ${isBooked ? 'booked' : ''}`}
+                  className={`day-cell ${isBooked ? 'booked' : ''} ${user.role === 'guest' ? 'guest-cursor' : ''}`}
                   style={getDayStyle(monthIndex, day)}
                 >
-                  {day}
+                  <span className="day-number">{day}</span>
                 </button>
               );
             })}
@@ -152,7 +239,9 @@ const AnnualCalendar = ({ year = 2026 }) => {
           }}
         >
           <div className="tooltip-label">Booked by</div>
-          <div className="tooltip-name">{hoveredBooking.name}</div>
+          {hoveredBooking.names.map((name, i) => (
+            <div key={i} className="tooltip-name">{name}</div>
+          ))}
         </div>
       )}
 
@@ -209,16 +298,31 @@ const AnnualCalendar = ({ year = 2026 }) => {
           border-radius: 50%;
           color: var(--text-primary);
           transition: all 0.2s;
+          position: relative;
+          overflow: hidden; /* For conic gradient */
+        }
+        
+        .day-number {
+           position: relative;
+           z-index: 2;
+           text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
 
         .day-cell:not(.empty):hover {
           background-color: var(--color-lavender);
           cursor: pointer;
         }
+        
+        .day-cell.guest-cursor {
+           cursor: default !important;
+        }
+        .day-cell.guest-cursor:hover {
+           background-color: transparent !important;
+        }
 
         .day-cell.booked {
           /* Background handled by inline style */
-          cursor: pointer; /* Allow clicking to see if override possible */
+          cursor: pointer; 
         }
         
         .day-cell.booked:hover {
@@ -263,6 +367,7 @@ const AnnualCalendar = ({ year = 2026 }) => {
           font-weight: 600;
           color: var(--color-mediterranean);
           font-size: 1.1rem;
+          line-height: 1.2;
         }
       `}</style>
     </div>

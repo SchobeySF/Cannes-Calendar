@@ -57,7 +57,7 @@ const CalendarPage = () => {
               className="btn btn-outline"
               style={{ border: 'none', padding: '6px 12px' }}
             >
-              Profile
+              {user.name}
             </button>
 
             <button onClick={logout} className="btn btn-outline sign-out-btn">
