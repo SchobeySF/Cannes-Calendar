@@ -1,41 +1,37 @@
 # Deployment Guide
 
-Since you are experiencing issues running `npm` locally, the best way to view and share your website is to deploy it to a cloud provider like **Vercel** or **Netlify**. These services will build your project in their cloud environment, bypassing your local restrictions.
+Since you are on a restricted corporate machine, you cannot run deployment commands locally.
+We will set up **GitHub Actions** to build and deploy your site automatically whenever you push code to GitHub.
 
-## Option 1: Deploy via GitHub (Recommended)
+## Step 1: Push your code to GitHub
 
-1.  **Create a Repository on GitHub**
-    *   Go to [github.com/new](https://github.com/new).
-    *   Name it `cannes-calendar`.
-    *   Create the repository.
-
-2.  **Push your code**
-    *   Run the commands shown by GitHub in your terminal (inside this folder):
+If you haven't already:
+1.  Create a new repository at [github.com/new](https://github.com/new) named `cannes-calendar`.
+2.  Push your code (if git is allowed):
     ```bash
     git remote add origin https://github.com/YOUR_USERNAME/cannes-calendar.git
     git branch -M main
     git push -u origin main
     ```
+    *(If git is also blocked, you can manually upload files on the GitHub website, but ensure the `.github/workflows` folder is included)*.
 
-3.  **Connect to Vercel**
-    *   Go to [vercel.com](https://vercel.com) and Sign Up/Login.
-    *   Click "Add New..." -> "Project".
-    *   Select your `cannes-calendar` repository.
-    *   Click **Deploy**.
-    *   Vercel will detect it's a Vite app and handle everything automatically.
+## Step 2: Get Firebase Service Account Key
 
-## Option 2: Drag & Drop (Netlify)
+1.  Go to the [Firebase Console Service Accounts](https://console.firebase.google.com/project/cannes-house/settings/serviceaccounts/adminsdk).
+2.  Click **Generate new private key**.
+3.  This will download a `.json` file containing your credentials. **Open this file and copy existing content**.
 
-If you don't want to use git:
+## Step 3: Add Secret to GitHub
 
-1.  Go to [app.netlify.com/drop](https://app.netlify.com/drop).
-2.  Drag this entire project folder (`Cannes Calendar Website`) onto the page.
-3.  *Note: This might fail if Netlify expects a pre-built `dist` folder. Since we can't build locally, Option 1 is much safer.*
+1.  Go to your GitHub Repository page.
+2.  Click **Settings** > **Secrets and variables** > **Actions**.
+3.  Click **New repository secret**.
+4.  **Name**: `FIREBASE_SERVICE_ACCOUNT_CANNES_HOUSE`
+5.  **Secret**: Paste the entire content of the JSON file you downloaded.
+6.  Click **Add secret**.
 
-## Option 3: CodeSandbox / StackBlitz
+## Step 4: Trigger Deployment
 
-You can also upload this project to an online IDE to run it immediately in the browser:
-
-1.  Go to [codesandbox.io](https://codesandbox.io) or [stackblitz.com](https://stackblitz.com).
-2.  Import from GitHub (after following Step 1 & 2 above).
-3.  You will see the app running instantly.
+1.  Make a small change to any file (e.g., add a space to `README.md`) and push it to GitHub.
+2.  Go to the **Actions** tab in your GitHub repository.
+3.  You should see a workflow running. Once it completes (green checkmark), your site is live!
