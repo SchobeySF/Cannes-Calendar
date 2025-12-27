@@ -179,14 +179,60 @@ const AnnualCalendar = ({ year = 2026 }) => {
     };
   };
 
+  const getBookingRange = (currentDateStr, username) => {
+    // Helper to check if a specific date has a booking for the user
+    const hasBooking = (dStr) => {
+      return bookings[dStr]?.some(b => b.user.username === username);
+    };
+
+    // Find start date
+    let start = new Date(currentDateStr);
+    while (true) {
+      const prevDate = new Date(start);
+      prevDate.setDate(prevDate.getDate() - 1);
+      const prevDateStr = prevDate.toISOString().split('T')[0]; // Simple ISO format YYYY-MM-DD
+
+      if (hasBooking(prevDateStr)) {
+        start = prevDate;
+      } else {
+        break;
+      }
+    }
+
+    // Find end date
+    let end = new Date(currentDateStr);
+    while (true) {
+      const nextDate = new Date(end);
+      nextDate.setDate(nextDate.getDate() + 1);
+      const nextDateStr = nextDate.toISOString().split('T')[0];
+
+      if (hasBooking(nextDateStr)) {
+        end = nextDate;
+      } else {
+        break;
+      }
+    }
+
+    // Format: "Jan 1 - Jan 5"
+    const options = { month: 'short', day: 'numeric' };
+    return `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
+  };
+
   const handleMouseEnter = (e, month, day) => {
     const dateStr = formatDate(year, month, day);
     const dateBookings = bookings[dateStr];
 
     if (dateBookings && dateBookings.length > 0) {
       const rect = e.target.getBoundingClientRect();
+
+      const tooltipItems = dateBookings.map(b => ({
+        name: b.user.name,
+        color: getUserColor(b.user.username),
+        range: getBookingRange(dateStr, b.user.username)
+      }));
+
       setHoveredBooking({
-        names: dateBookings.map(b => b.user.name),
+        items: tooltipItems,
         x: rect.left + rect.width / 2,
         y: rect.top - 10
       });
@@ -245,9 +291,14 @@ const AnnualCalendar = ({ year = 2026 }) => {
             top: hoveredBooking.y
           }}
         >
-          <div className="tooltip-label">Booked by</div>
-          {hoveredBooking.names.map((name, i) => (
-            <div key={i} className="tooltip-name">{name}</div>
+          {hoveredBooking.items.map((item, i) => (
+            <div key={i} className="tooltip-item">
+              <div className="tooltip-header">
+                <span className="tooltip-dot" style={{ backgroundColor: item.color }}></span>
+                <span className="tooltip-name">{item.name}</span>
+              </div>
+              <div className="tooltip-range">{item.range}</div>
+            </div>
           ))}
         </div>
       )}
@@ -363,20 +414,45 @@ const AnnualCalendar = ({ year = 2026 }) => {
           border-color: white transparent transparent transparent;
         }
 
-        .tooltip-label {
-          font-size: 0.7rem;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          color: var(--text-secondary);
+        .tooltip-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+
+        .tooltip-item:last-child {
+          margin-bottom: 0;
+        }
+
+        .tooltip-header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
           margin-bottom: 2px;
+        }
+
+        .tooltip-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          display: inline-block;
         }
 
         .tooltip-name {
           font-family: var(--font-heading);
           font-weight: 600;
-          color: var(--color-mediterranean);
-          font-size: 1.1rem;
+          color: var(--text-primary);
+          font-size: 1rem;
           line-height: 1.2;
+        }
+        
+        .tooltip-range {
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+          background: rgba(0,0,0,0.03);
+          padding: 2px 6px;
+          border-radius: 4px;
         }
       `}</style>
     </div>
