@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AnnualCalendar from './AnnualCalendar';
 import AdminPage from './AdminPage';
@@ -9,12 +9,26 @@ const CalendarPage = () => {
   const [view, setView] = useState('calendar'); // 'calendar' or 'admin'
   const [showProfile, setShowProfile] = useState(false);
   const [currentYear, setCurrentYear] = useState(2026);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const YEARS = [2026, 2027, 2028, 2029, 2030];
 
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 50) {
+        setIsMinimized(true);
+      } else {
+        setIsMinimized(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <div className="calendar-page">
-      <header className="app-header">
+      <header className={`app-header ${isMinimized ? 'minimized' : ''}`}>
         <div className="container header-content">
           <div className="brand">
             <h2 translate="no" className="notranslate">Maison Schober</h2>
@@ -225,11 +239,13 @@ const CalendarPage = () => {
             flex-direction: column;
             gap: 1rem;
             padding-right: 0;
+            transition: all 0.3s ease;
           }
           .user-controls {
             flex-direction: column;
             gap: 1rem;
             margin-right: 0;
+            transition: all 0.3s ease;
           }
           .year-nav {
             order: 3;
@@ -237,7 +253,42 @@ const CalendarPage = () => {
             justify-content: center;
             overflow-x: auto;
           }
+          
+          /* Minimized State Styles */
+          .app-header.minimized {
+            padding: 0.5rem 0;
           }
+
+          .app-header.minimized .header-content {
+            flex-direction: row; /* Force row layout when minimized */
+            justify-content: space-between;
+            padding: 0 1rem;
+          }
+
+          .app-header.minimized .brand h2 {
+            display: none; /* Hide logo text */
+          }
+
+          .app-header.minimized .year-nav {
+            display: none; /* Hide year buttons */
+          }
+
+          .app-header.minimized .user-controls {
+            flex-direction: row;
+            margin-right: 0;
+            gap: 1rem;
+          }
+
+          .app-header.minimized .btn-primary,
+          .app-header.minimized .btn-outline {
+            display: none; /* Hide Admin and Sign Out buttons */
+          }
+          
+          /* Ensure User Identity (Dropdown/Name) stays visible */
+          .app-header.minimized .user-identity-control {
+            display: flex;
+          }
+        }
           
           .user-identity-control {
             display: flex;
