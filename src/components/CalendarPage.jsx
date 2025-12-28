@@ -5,7 +5,7 @@ import AdminPage from './AdminPage';
 import ProfileSettings from './ProfileSettings';
 
 const CalendarPage = () => {
-  const { logout, user } = useAuth();
+  const { logout, user, actingUser, impersonate, allUsers } = useAuth();
   const [view, setView] = useState('calendar'); // 'calendar' or 'admin'
   const [showProfile, setShowProfile] = useState(false);
   const [currentYear, setCurrentYear] = useState(2026);
@@ -36,11 +36,42 @@ const CalendarPage = () => {
           )}
 
           <div className="user-controls">
-            {view === 'calendar' && (
-              <div className="legend">
-                <span className="legend-item"><span className="dot my-booking" style={{ background: user.color }}></span>My Booking</span>
-              </div>
-            )}
+
+            {/* User Dropdown / Impersonation Control */}
+            <div className="user-identity-control">
+              <span
+                className="dot my-booking"
+                style={{
+                  background: actingUser?.color || '#ccc',
+                  marginRight: '8px'
+                }}
+              ></span>
+
+              {(user.role === 'admin' || user.role === 'super-admin') ? (
+                <div className="impersonation-wrapper">
+                  <select
+                    value={actingUser?.username || user.username}
+                    onChange={(e) => impersonate(e.target.value)}
+                    className="impersonation-select"
+                  >
+                    {/* Sort users alphabetically */}
+                    {[...allUsers].sort((a, b) => a.name.localeCompare(b.name)).map(u => (
+                      <option key={u.username} value={u.username}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowProfile(true)}
+                  className="btn-profile-link"
+                >
+                  {user.name}
+                </button>
+              )}
+            </div>
+
 
             {(user.role === 'admin' || user.role === 'super-admin') && (
               <button
@@ -52,15 +83,7 @@ const CalendarPage = () => {
               </button>
             )}
 
-            <button
-              onClick={() => setShowProfile(true)}
-              className="btn btn-outline"
-              style={{ border: 'none', padding: '6px 12px' }}
-            >
-              {user.name}
-            </button>
-
-            <button onClick={logout} className="btn btn-outline sign-out-btn">
+            <button onClick={logout} className="btn btn-outline">
               Sign Out
             </button>
           </div>
@@ -214,10 +237,49 @@ const CalendarPage = () => {
             justify-content: center;
             overflow-x: auto;
           }
-          .sign-out-btn {
-            position: static;
-            transform: none;
           }
+          
+          .user-identity-control {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 12px 4px 8px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+          }
+
+          .impersonation-select {
+            background: transparent;
+            color: white;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            padding-right: 20px; /* Space for arrow */
+            outline: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+             /* Custom arrow indicator could go here, but default is often fine or removed */
+          }
+          
+          .impersonation-select option {
+            color: black; /* Options need dark text on white bg usually */
+          }
+
+          .btn-profile-link {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+          }
+          
+          .btn-profile-link:hover {
+            text-decoration: underline;
+          }
+
         }
       `}</style>
     </div>

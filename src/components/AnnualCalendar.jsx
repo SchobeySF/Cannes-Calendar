@@ -7,7 +7,7 @@ import { db } from '../firebase';
 
 
 const AnnualCalendar = ({ year = 2026 }) => {
-  const { user, allUsers } = useAuth();
+  const { user, actingUser, allUsers } = useAuth();
   const [bookings, setBookings] = useState({});
   const [hoveredBooking, setHoveredBooking] = useState(null);
   const lastSelectedDateRef = useRef(null);
@@ -61,7 +61,7 @@ const AnnualCalendar = ({ year = 2026 }) => {
 
   const toggleBooking = (currentBookings, dateStr) => {
     const dateBookings = currentBookings[dateStr] || [];
-    const myBookingIndex = dateBookings.findIndex(b => b.user.username === user.username);
+    const myBookingIndex = dateBookings.findIndex(b => b.user.username === actingUser.username);
 
     if (myBookingIndex >= 0) {
       // Remove my booking
@@ -78,7 +78,7 @@ const AnnualCalendar = ({ year = 2026 }) => {
         ...dateBookings,
         {
           status: 'booked',
-          user: { name: user.name, username: user.username }
+          user: { name: actingUser.name, username: actingUser.username }
         }
       ];
     }
@@ -104,7 +104,7 @@ const AnnualCalendar = ({ year = 2026 }) => {
   };
 
   const handleDateClick = async (month, day, e) => {
-    if (user.role === 'guest') return;
+    if (actingUser.role === 'guest') return;
 
     const dateStr = formatDate(year, month, day);
 
@@ -118,16 +118,16 @@ const AnnualCalendar = ({ year = 2026 }) => {
       // If clicked date is NOT booked by me, we want to BOOK the range
       // If clicked date IS booked by me, we want to UNBOOK the range
       const clickedDateBookings = bookings[dateStr] || [];
-      const isClickedDateBookedByMe = clickedDateBookings.some(b => b.user.username === user.username);
+      const isClickedDateBookedByMe = clickedDateBookings.some(b => b.user.username === actingUser.username);
       const intentToBook = !isClickedDateBookedByMe;
 
       datesToToggle.forEach(d => {
         const dBookings = newBookings[d] || [];
-        const myIndex = dBookings.findIndex(b => b.user.username === user.username);
+        const myIndex = dBookings.findIndex(b => b.user.username === actingUser.username);
 
         if (intentToBook) {
           if (myIndex === -1) {
-            newBookings[d] = [...dBookings, { status: 'booked', user: { name: user.name, username: user.username } }];
+            newBookings[d] = [...dBookings, { status: 'booked', user: { name: actingUser.name, username: actingUser.username } }];
           }
         } else {
           if (myIndex >= 0) {
@@ -272,7 +272,7 @@ const AnnualCalendar = ({ year = 2026 }) => {
                   onClick={(e) => handleDateClick(monthIndex, day, e)}
                   onMouseEnter={(e) => handleMouseEnter(e, monthIndex, day)}
                   onMouseLeave={handleMouseLeave}
-                  className={`day-cell ${isBooked ? 'booked' : ''} ${user.role === 'guest' ? 'guest-cursor' : ''}`}
+                  className={`day-cell ${isBooked ? 'booked' : ''} ${actingUser.role === 'guest' ? 'guest-cursor' : ''}`}
                   style={getDayStyle(monthIndex, day)}
                 >
                   <span className="day-number">{day}</span>

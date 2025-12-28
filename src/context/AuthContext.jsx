@@ -28,6 +28,7 @@ const INITIAL_USERS = [
 export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
+    const [impersonatedUser, setImpersonatedUser] = useState(null);
     const [allUsers, setAllUsers] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -83,8 +84,25 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setIsAuthenticated(false);
         setUser(null);
+        setImpersonatedUser(null);
         localStorage.removeItem('cannes_user');
     };
+
+    // Impersonation Logic
+    const impersonate = (username) => {
+        if (!user || (user.role !== 'admin' && user.role !== 'super-admin')) return;
+
+        if (username === user.username) {
+            setImpersonatedUser(null);
+        } else {
+            const targetUser = allUsers.find(u => u.username === username);
+            if (targetUser) {
+                setImpersonatedUser(targetUser);
+            }
+        }
+    };
+
+    const actingUser = impersonatedUser || user;
 
     // Admin Methods
     const addUser = async (newUser) => {
@@ -132,7 +150,11 @@ export const AuthProvider = ({ children }) => {
             addUser,
             updateUser,
             deleteUser,
-            loading
+            deleteUser,
+            loading,
+            impersonate,
+            actingUser,
+            impersonatedUser
         }}>
             {children}
         </AuthContext.Provider>
