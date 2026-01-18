@@ -57,20 +57,20 @@ const AnnualCalendar = ({ year = 2026 }) => {
       const oldList = oldBookings[dateStr] || [];
       const newList = newBookings[dateStr] || [];
 
-      // Check for added bookings for the acting user
+      // Check for added bookings for the acting user (Compare by Email)
       const added = newList.filter(n =>
-        n.user.username === actingUser.username &&
-        !oldList.some(o => o.user.username === actingUser.username)
+        n.user.email === actingUser.email &&
+        !oldList.some(o => o.user.email === actingUser.email)
       );
 
       if (added.length > 0) {
         changes.added.push(dateStr);
       }
 
-      // Check for removed bookings for the acting user
+      // Check for removed bookings for the acting user (Compare by Email)
       const removed = oldList.filter(o =>
-        o.user.username === actingUser.username &&
-        !newList.some(n => n.user.username === actingUser.username)
+        o.user.email === actingUser.email &&
+        !newList.some(n => n.user.email === actingUser.email)
       );
 
       if (removed.length > 0) {
@@ -115,7 +115,8 @@ const AnnualCalendar = ({ year = 2026 }) => {
 
   const toggleBooking = (currentBookings, dateStr) => {
     const dateBookings = currentBookings[dateStr] || [];
-    const myBookingIndex = dateBookings.findIndex(b => b.user.username === actingUser.username);
+    // Compare by email now
+    const myBookingIndex = dateBookings.findIndex(b => b.user.email === actingUser.email);
 
     if (myBookingIndex >= 0) {
       // Remove my booking
@@ -132,7 +133,12 @@ const AnnualCalendar = ({ year = 2026 }) => {
         ...dateBookings,
         {
           status: 'booked',
-          user: { name: actingUser.name, username: actingUser.username }
+          // Store email for robust ID, keep username/name for legacy display compatibility if needed
+          user: {
+            name: actingUser.name,
+            email: actingUser.email,
+            username: actingUser.username || actingUser.email.split('@')[0]
+          }
         }
       ];
     }
@@ -168,20 +174,24 @@ const AnnualCalendar = ({ year = 2026 }) => {
     if (e.shiftKey && lastSelectedDateRef.current) {
       const datesToToggle = getDatesInRange(lastSelectedDateRef.current, dateStr);
 
-      // Determine intent based on the clicked date
-      // If clicked date is NOT booked by me, we want to BOOK the range
-      // If clicked date IS booked by me, we want to UNBOOK the range
       const clickedDateBookings = bookings[dateStr] || [];
-      const isClickedDateBookedByMe = clickedDateBookings.some(b => b.user.username === actingUser.username);
+      const isClickedDateBookedByMe = clickedDateBookings.some(b => b.user.email === actingUser.email);
       const intentToBook = !isClickedDateBookedByMe;
 
       datesToToggle.forEach(d => {
         const dBookings = newBookings[d] || [];
-        const myIndex = dBookings.findIndex(b => b.user.username === actingUser.username);
+        const myIndex = dBookings.findIndex(b => b.user.email === actingUser.email);
 
         if (intentToBook) {
           if (myIndex === -1) {
-            newBookings[d] = [...dBookings, { status: 'booked', user: { name: actingUser.name, username: actingUser.username } }];
+            newBookings[d] = [...dBookings, {
+              status: 'booked',
+              user: {
+                name: actingUser.name,
+                email: actingUser.email,
+                username: actingUser.username || actingUser.email.split('@')[0]
+              }
+            }];
           }
         } else {
           if (myIndex >= 0) {
@@ -204,8 +214,13 @@ const AnnualCalendar = ({ year = 2026 }) => {
 
 
 
-  const getUserColor = (username) => {
-    const foundUser = allUsers.find(u => u.username === username);
+  const getUserColor = (userObj) => {
+    // Try to find by email first (robust), then username (legacy)
+    if (userObj.email) {
+      const found = allUsers.find(u => u.email === userObj.email);
+      if (found) return found.color;
+    }
+    const foundUser = allUsers.find(u => u.username === userObj.username);
     return foundUser ? foundUser.color : '#ccc';
   };
 
@@ -216,12 +231,12 @@ const AnnualCalendar = ({ year = 2026 }) => {
     if (!dateBookings || dateBookings.length === 0) return {};
 
     if (dateBookings.length === 1) {
-      const color = getUserColor(dateBookings[0].user.username);
+      const color = getUserColor(dateBookings[0].user);
       return { backgroundColor: color, color: 'white' };
     }
 
     // Multiple bookings - Conic Gradient
-    const colors = dateBookings.map(b => getUserColor(b.user.username));
+    const colors = dateBookings.map(b => getUserColor(b.user));
     const segmentSize = 100 / colors.length;
     const gradientParts = colors.map((c, i) => {
       return `${c} ${i * segmentSize}% ${(i + 1) * segmentSize}%`;
@@ -233,10 +248,15 @@ const AnnualCalendar = ({ year = 2026 }) => {
     };
   };
 
-  const getBookingRange = (currentDateStr, username) => {
-    // Helper to check if a specific date has a booking for the user
+  const getBookingRange = (currentDateStr, user) => {
+    // Check match by email if available, else username
+    const isMe = (bUser) => {
+      if (user.email && bUser.email) return user.email === bUser.email;
+      return user.username === bUser.username;
+    };
+
     const hasBooking = (dStr) => {
-      return bookings[dStr]?.some(b => b.user.username === username);
+      return bookings[dStr]?.some(b => isMe(b.user));
     };
 
     // Find start date
@@ -244,7 +264,7 @@ const AnnualCalendar = ({ year = 2026 }) => {
     while (true) {
       const prevDate = new Date(start);
       prevDate.setDate(prevDate.getDate() - 1);
-      const prevDateStr = prevDate.toISOString().split('T')[0]; // Simple ISO format YYYY-MM-DD
+      const prevDateStr = prevDate.toISOString().split('T')[0];
 
       if (hasBooking(prevDateStr)) {
         start = prevDate;
@@ -267,7 +287,6 @@ const AnnualCalendar = ({ year = 2026 }) => {
       }
     }
 
-    // Format: "Jan 1 - Jan 5"
     const options = { month: 'short', day: 'numeric' };
     return `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
   };
@@ -281,8 +300,8 @@ const AnnualCalendar = ({ year = 2026 }) => {
 
       const tooltipItems = dateBookings.map(b => ({
         name: b.user.name,
-        color: getUserColor(b.user.username),
-        range: getBookingRange(dateStr, b.user.username)
+        color: getUserColor(b.user),
+        range: getBookingRange(dateStr, b.user)
       }));
 
       setHoveredBooking({
