@@ -3,17 +3,25 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { signIn, signUp } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = login(username, password);
-    if (!success) {
-      setError('Incorrect username or password.');
-      setPassword('');
+    setError('');
+
+    let result;
+    if (isSignUp) {
+      result = await signUp(email, password);
+    } else {
+      result = await signIn(email, password);
+    }
+
+    if (!result.success) {
+      setError(result.error || 'Authentication failed');
     }
   };
 
@@ -33,11 +41,12 @@ const LoginPage = () => {
         <form onSubmit={handleSubmit}>
           <div className="input-group">
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
               className="login-input"
+              required
             />
           </div>
           <div className="input-group">
@@ -47,13 +56,24 @@ const LoginPage = () => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
               className="login-input"
+              required
             />
           </div>
           {error && <p className="error-message">{error}</p>}
           <button type="submit" className="btn btn-primary login-btn">
-            Enter
+            {isSignUp ? 'Sign Up' : 'Log In'}
           </button>
         </form>
+
+        <div style={{ marginTop: '1rem' }}>
+          <button
+            type="button"
+            onClick={() => setIsSignUp(!isSignUp)}
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            {isSignUp ? 'Already have an account? Log In' : 'First time? Sign Up'}
+          </button>
+        </div>
       </div>
 
       <style>{`

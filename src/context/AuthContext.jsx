@@ -8,101 +8,104 @@ import {
     doc,
     query,
     where,
-    getDocs,
-    writeBatch
+    getDocs
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import {
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut as firebaseSignOut,
+    onAuthStateChanged
+} from 'firebase/auth';
+import { db, auth } from '../firebase';
 
 const AuthContext = createContext(null);
 
 export const useAuth = () => useContext(AuthContext);
 
-const INITIAL_USERS = [
-    { username: 'admin', password: '123', name: 'Admin', role: 'admin', color: '#E6E6FA' }, // Lavender
-    { username: 'brother', password: '123', name: 'Brother', role: 'user', color: '#87CEEB' }, // Sky Blue
-    { username: 'parents', password: '123', name: 'Parents', role: 'user', color: '#F4A460' }, // Sandy Brown
-    { username: 'me', password: '123', name: 'Me', role: 'user', color: '#98FB98' }, // Pale Green
-    { username: 'friend', password: '123', name: 'Family Friend', role: 'user', color: '#FFB6C1' } // Light Pink
-];
-
 export const AuthProvider = ({ children }) => {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
-    const [impersonatedUser, setImpersonatedUser] = useState(null);
     const [allUsers, setAllUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [authLoading, setAuthLoading] = useState(true);
 
+    // 1. Monitor Firebase Auth State
     useEffect(() => {
-        // Real-time listener for users
-        const unsubscribe = onSnapshot(collection(db, 'users'), async (snapshot) => {
-            const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            if (usersData.length === 0) {
-                console.log("No users found in Firestore. Seeding default users...");
-                // Seed database if empty
-                const batch = writeBatch(db);
-                INITIAL_USERS.forEach(user => {
-                    const docRef = doc(collection(db, 'users'));
-                    batch.set(docRef, user);
-                });
-                await batch.commit();
-                console.log("Seeding complete.");
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser) {
+                // User is signed in, check if they are in our 'users' allowed list
+                await checkUserAccess(firebaseUser.email);
             } else {
-                console.log("Loaded users from Firestore:", usersData.length);
-                setAllUsers(usersData);
+                // User is signed out
+                setUser(null);
             }
-            setLoading(false);
-        }, (error) => {
-            console.error("Error listening to users collection:", error);
-            setLoading(false);
+            setAuthLoading(false);
         });
-
-        // Check local storage for existing session (just to keep user logged in on refresh)
-        const storedUser = localStorage.getItem('cannes_user');
-        if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            setIsAuthenticated(true);
-            setUser(parsedUser);
-        }
 
         return () => unsubscribe();
     }, []);
 
-    const login = (username, password) => {
-        // Check against the real-time synced users list
-        const foundUser = allUsers.find(u => u.username === username && u.password === password);
+    const checkUserAccess = async (email) => {
+        try {
+            const q = query(collection(db, 'users'), where('email', '==', email));
+            const querySnapshot = await getDocs(q);
 
-        if (foundUser) {
-            setIsAuthenticated(true);
-            setUser(foundUser);
-            localStorage.setItem('cannes_user', JSON.stringify(foundUser));
-            return true;
-        }
-        return false;
-    };
-
-    const logout = () => {
-        setIsAuthenticated(false);
-        setUser(null);
-        setImpersonatedUser(null);
-        localStorage.removeItem('cannes_user');
-    };
-
-    // Impersonation Logic
-    const impersonate = (username) => {
-        if (!user || (user.role !== 'admin' && user.role !== 'super-admin')) return;
-
-        if (username === user.username) {
-            setImpersonatedUser(null);
-        } else {
-            const targetUser = allUsers.find(u => u.username === username);
-            if (targetUser) {
-                setImpersonatedUser(targetUser);
+            if (!querySnapshot.empty) {
+                const userDoc = querySnapshot.docs[0];
+                setUser({
+                    uid: userDoc.id, // Firestore ID
+                    authUid: auth.currentUser.uid,
+                    email: email,
+                    ...userDoc.data()
+                });
+            } else {
+                console.warn("User authenticated but not found in allowed users list:", email);
+                // Optional: Force logout if strict, or let them stay 'logged in' but with no role (Guest)
+                setUser(null);
+                await firebaseSignOut(auth);
+                alert("Access Denied: Your email is not on the allowed list. Please contact the administrator.");
             }
+        } catch (error) {
+            console.error("Error fetching user profile:", error);
         }
     };
 
-    const actingUser = impersonatedUser || user;
+    // 2. Monitor All Users (for Admin View)
+    useEffect(() => {
+        const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+            const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setAllUsers(usersData);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // Auth Actions
+    const signIn = async (email, password) => {
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            return { success: true };
+        } catch (error) {
+            console.error("Login error:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const signUp = async (email, password) => {
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+            // After signup, onAuthStateChanged will trigger and checkUserAccess will run
+            return { success: true };
+        } catch (error) {
+            console.error("Signup error:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const logout = async () => {
+        await firebaseSignOut(auth);
+        setUser(null);
+    };
 
     // Admin Methods
     const addUser = async (newUser) => {
@@ -111,52 +114,56 @@ export const AuthProvider = ({ children }) => {
         const randomColor = defaultColors[Math.floor(Math.random() * defaultColors.length)];
 
         await addDoc(collection(db, 'users'), {
-            ...newUser,
-            ...newUser,
+            email: newUser.email, // Key identifier now
+            name: newUser.name,
             role: newUser.role || 'user',
-            color: newUser.color || randomColor
+            color: newUser.color || randomColor,
+            username: newUser.email.split('@')[0] // Fallback for display
         });
     };
 
-    const updateUser = async (username, updates) => {
-        const userToUpdate = allUsers.find(u => u.username === username);
+    const updateUser = async (originalEmail, updates) => {
+        // Find doc by email (since we passed email as ID in old code, but now we query)
+        // Actually, we should pass the ID if possible, but finding by email is safe enough for migration
+        const userToUpdate = allUsers.find(u => u.email === originalEmail);
         if (userToUpdate) {
             const userRef = doc(db, 'users', userToUpdate.id);
             await updateDoc(userRef, updates);
 
-            // If updating current user, update session too
-            if (user && user.username === username) {
-                const updatedCurrentUser = { ...user, ...updates };
-                setUser(updatedCurrentUser);
-                localStorage.setItem('cannes_user', JSON.stringify(updatedCurrentUser));
+            // Update local state if it's me
+            if (user && user.email === originalEmail) {
+                setUser({ ...user, ...updates });
             }
         }
     };
 
-    const deleteUser = async (usernameToDelete) => {
-        const userToDelete = allUsers.find(u => u.username === usernameToDelete);
+    const deleteUser = async (emailToDelete) => {
+        const userToDelete = allUsers.find(u => u.email === emailToDelete);
         if (userToDelete) {
             await deleteDoc(doc(db, 'users', userToDelete.id));
         }
     };
 
+    // Derived State
+    const isAuthenticated = !!user;
+    // Acting user logic preserved for backward compatibility (no impersonation for now)
+    const actingUser = user;
+
     return (
         <AuthContext.Provider value={{
             isAuthenticated,
             user,
-            login,
+            signIn,
+            signUp,
             logout,
             allUsers,
             addUser,
             updateUser,
             deleteUser,
-            deleteUser,
             loading,
-            impersonate,
-            actingUser,
-            impersonatedUser
+            actingUser // for compatibility with Calendar
         }}>
-            {children}
+            {!authLoading && children}
         </AuthContext.Provider>
     );
 };

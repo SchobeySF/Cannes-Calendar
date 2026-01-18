@@ -8,31 +8,29 @@ const AdminPage = () => {
   const { allUsers, addUser, updateUser, deleteUser, user: currentUser } = useAuth();
 
   // Add User State
-  const [newUsername, setNewUsername] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [newEmail, setNewEmail] = useState('');
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState('user');
   const [error, setError] = useState('');
 
   // Edit User State
   const [editingUser, setEditingUser] = useState(null);
-  const [editForm, setEditForm] = useState({ name: '', username: '', password: '', role: 'user', color: '' });
+  const [editForm, setEditForm] = useState({ name: '', email: '', role: 'user', color: '' });
 
   const handleAddUser = (e) => {
     e.preventDefault();
-    if (!newUsername || !newPassword || !newName) {
-      setError('All fields are required');
+    if (!newEmail || !newName) {
+      setError('Name and Email are required');
       return;
     }
 
-    if (allUsers.some(u => u.username === newUsername)) {
-      setError('Username already exists');
+    if (allUsers.some(u => u.email === newEmail)) {
+      setError('Email already exists');
       return;
     }
 
-    addUser({ username: newUsername, password: newPassword, name: newName, role: newRole });
-    setNewUsername('');
-    setNewPassword('');
+    addUser({ email: newEmail, name: newName, role: newRole });
+    setNewEmail('');
     setNewName('');
     setNewRole('user');
     setError('');
@@ -45,7 +43,7 @@ const AdminPage = () => {
 
   const handleUpdateUser = (e) => {
     e.preventDefault();
-    updateUser(editingUser.username, editForm);
+    updateUser(editingUser.email, editForm);
     setEditingUser(null);
   };
 
@@ -55,7 +53,10 @@ const AdminPage = () => {
 
       <div className="admin-grid">
         <div className="card add-user-card">
-          <h3>Add New User</h3>
+          <h3>Add New User (Pre-Approval)</h3>
+          <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+            Add the email address that the user will use to sign up. They will choose their own password.
+          </p>
           <form onSubmit={handleAddUser}>
             <div className="form-group">
               <label>Name (Display Name)</label>
@@ -66,21 +67,15 @@ const AdminPage = () => {
               />
             </div>
             <div className="form-group">
-              <label>Username</label>
+              <label>Email</label>
               <input
-                value={newUsername}
-                onChange={e => setNewUsername(e.target.value)}
-                placeholder="e.g. marie"
+                type="email"
+                value={newEmail}
+                onChange={e => setNewEmail(e.target.value)}
+                placeholder="e.g. marie@example.com"
               />
             </div>
-            <div className="form-group">
-              <label>Password</label>
-              <input
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                placeholder="e.g. 123"
-              />
-            </div>
+            {/* Password removed - Auth handles it */}
             <div className="form-group">
               <label>Role</label>
               <select
@@ -95,7 +90,7 @@ const AdminPage = () => {
               </select>
             </div>
             {error && <p className="error">{error}</p>}
-            <button type="submit" className="btn btn-primary">Add User</button>
+            <button type="submit" className="btn btn-primary">Add Allowed User</button>
           </form>
         </div>
 
@@ -103,13 +98,13 @@ const AdminPage = () => {
           <h3>Manage Users</h3>
           <div className="user-list">
             {allUsers.map(u => (
-              <div key={u.username} className="user-item">
+              <div key={u.email} className="user-item">
                 <div className="user-info">
                   <div className="user-header">
                     <span className="color-dot" style={{ backgroundColor: u.color }}></span>
                     <span className="user-name">{u.name}</span>
                   </div>
-                  <span className="user-meta">@{u.username} • {u.role}</span>
+                  <span className="user-meta">{u.email} • {u.role}</span>
                 </div>
                 <div className="user-actions">
                   <button
@@ -118,9 +113,9 @@ const AdminPage = () => {
                   >
                     Edit
                   </button>
-                  {u.username !== currentUser.username && u.username !== 'admin' && (
+                  {u.email !== currentUser.email && (
                     <button
-                      onClick={() => deleteUser(u.username)}
+                      onClick={() => deleteUser(u.email)}
                       className="btn-delete"
                     >
                       Remove
@@ -131,9 +126,6 @@ const AdminPage = () => {
             ))}
           </div>
         </div>
-
-
-
       </div>
 
 
@@ -141,7 +133,7 @@ const AdminPage = () => {
       {editingUser && (
         <div className="modal-overlay">
           <div className="modal">
-            <h3>Edit User: {editingUser.username}</h3>
+            <h3>Edit User: {editingUser.name}</h3>
             <form onSubmit={handleUpdateUser}>
               <div className="form-group">
                 <label>Name</label>
@@ -150,11 +142,13 @@ const AdminPage = () => {
                   onChange={e => setEditForm({ ...editForm, name: e.target.value })}
                 />
               </div>
+              {/* Email usually immutable in this simple system, but displayed */}
               <div className="form-group">
-                <label>Password</label>
+                <label>Email (ID)</label>
                 <input
-                  value={editForm.password}
-                  onChange={e => setEditForm({ ...editForm, password: e.target.value })}
+                  value={editForm.email}
+                  disabled
+                  style={{ background: '#f0f0f0', color: '#666' }}
                 />
               </div>
               <div className="form-group">
