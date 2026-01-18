@@ -69,9 +69,9 @@ const CalendarPage = () => {
                     className="impersonation-select"
                   >
                     {/* Sort users alphabetically */}
-                    {[...allUsers].sort((a, b) => a.name.localeCompare(b.name)).map(u => (
+                    {[...allUsers].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(u => (
                       <option key={u.email} value={u.email}>
-                        {u.name}
+                        {u.name || u.email}
                       </option>
                     ))}
                   </select>

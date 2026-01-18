@@ -52,11 +52,13 @@ export const AuthProvider = ({ children }) => {
 
             if (!querySnapshot.empty) {
                 const userDoc = querySnapshot.docs[0];
+                const userData = userDoc.data();
                 setUser({
                     uid: userDoc.id, // Firestore ID
                     authUid: auth.currentUser.uid,
                     email: email,
-                    ...userDoc.data()
+                    username: userData.username || email.split('@')[0], // Fallback
+                    ...userData
                 });
             } else {
                 console.warn("User authenticated but not found in allowed users list:", email);
