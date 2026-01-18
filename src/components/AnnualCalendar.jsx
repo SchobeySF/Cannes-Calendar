@@ -44,6 +44,14 @@ const AnnualCalendar = ({ year = 2026 }) => {
     return () => unsubscribe();
   }, [year]);
 
+  // Robustly check if a booking belongs to the acting user
+  const isBookingOwner = (bookingUser) => {
+    if (bookingUser.email && actingUser.email) {
+      return bookingUser.email === actingUser.email;
+    }
+    return bookingUser.username === actingUser.username;
+  };
+
   // Helper to calculate diff between old and new bookings
   const calculateChanges = (oldBookings, newBookings) => {
     const changes = {
@@ -57,20 +65,20 @@ const AnnualCalendar = ({ year = 2026 }) => {
       const oldList = oldBookings[dateStr] || [];
       const newList = newBookings[dateStr] || [];
 
-      // Check for added bookings for the acting user (Compare by Email)
+      // Check for added bookings for the acting user
       const added = newList.filter(n =>
-        n.user.email === actingUser.email &&
-        !oldList.some(o => o.user.email === actingUser.email)
+        isBookingOwner(n.user) &&
+        !oldList.some(o => isBookingOwner(o.user))
       );
 
       if (added.length > 0) {
         changes.added.push(dateStr);
       }
 
-      // Check for removed bookings for the acting user (Compare by Email)
+      // Check for removed bookings for the acting user
       const removed = oldList.filter(o =>
-        o.user.email === actingUser.email &&
-        !newList.some(n => n.user.email === actingUser.email)
+        isBookingOwner(o.user) &&
+        !newList.some(n => isBookingOwner(n.user))
       );
 
       if (removed.length > 0) {
@@ -115,8 +123,9 @@ const AnnualCalendar = ({ year = 2026 }) => {
 
   const toggleBooking = (currentBookings, dateStr) => {
     const dateBookings = currentBookings[dateStr] || [];
-    // Compare by email now
-    const myBookingIndex = dateBookings.findIndex(b => b.user.email === actingUser.email);
+
+    // Robust check for existing booking
+    const myBookingIndex = dateBookings.findIndex(b => isBookingOwner(b.user));
 
     if (myBookingIndex >= 0) {
       // Remove my booking
@@ -175,12 +184,12 @@ const AnnualCalendar = ({ year = 2026 }) => {
       const datesToToggle = getDatesInRange(lastSelectedDateRef.current, dateStr);
 
       const clickedDateBookings = bookings[dateStr] || [];
-      const isClickedDateBookedByMe = clickedDateBookings.some(b => b.user.email === actingUser.email);
+      const isClickedDateBookedByMe = clickedDateBookings.some(b => isBookingOwner(b.user));
       const intentToBook = !isClickedDateBookedByMe;
 
       datesToToggle.forEach(d => {
         const dBookings = newBookings[d] || [];
-        const myIndex = dBookings.findIndex(b => b.user.email === actingUser.email);
+        const myIndex = dBookings.findIndex(b => isBookingOwner(b.user));
 
         if (intentToBook) {
           if (myIndex === -1) {
