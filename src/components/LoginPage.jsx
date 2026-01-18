@@ -6,15 +6,24 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isResetting, setIsResetting] = useState(false); // New state for reset mode
+  const [message, setMessage] = useState(''); // Success message
   const [error, setError] = useState('');
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setMessage('');
 
     let result;
-    if (isSignUp) {
+    if (isResetting) {
+      result = await resetPassword(email);
+      if (result.success) {
+        setMessage('Check your email for password reset instructions.');
+        return;
+      }
+    } else if (isSignUp) {
       result = await signUp(email, password);
     } else {
       result = await signIn(email, password);
@@ -49,30 +58,56 @@ const LoginPage = () => {
               required
             />
           </div>
-          <div className="input-group">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className="login-input"
-              required
-            />
-          </div>
+
+          {!isResetting && (
+            <div className="input-group">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                className="login-input"
+                required
+              />
+            </div>
+          )}
+
           {error && <p className="error-message">{error}</p>}
+          {message && <p className="success-message">{message}</p>}
+
           <button type="submit" className="btn btn-primary login-btn">
-            {isSignUp ? 'Sign Up' : 'Log In'}
+            {isResetting ? 'Reset Password' : (isSignUp ? 'Sign Up' : 'Log In')}
           </button>
         </form>
 
-        <div style={{ marginTop: '1rem' }}>
-          <button
-            type="button"
-            onClick={() => setIsSignUp(!isSignUp)}
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', textDecoration: 'underline' }}
-          >
-            {isSignUp ? 'Already have an account? Log In' : 'First time? Sign Up'}
-          </button>
+        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {!isResetting && !isSignUp && (
+            <button
+              type="button"
+              onClick={() => setIsResetting(true)}
+              className="link-btn"
+            >
+              Forgot Password?
+            </button>
+          )}
+
+          {isResetting ? (
+            <button
+              type="button"
+              onClick={() => { setIsResetting(false); setMessage(''); setError(''); }}
+              className="link-btn"
+            >
+              Back to Log In
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="link-btn"
+            >
+              {isSignUp ? 'Already have an account? Log In' : 'First time? Sign Up'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -154,6 +189,25 @@ const LoginPage = () => {
           color: #ff6b6b;
           font-size: 0.9rem;
           margin-bottom: 1rem;
+        }
+
+        .success-message {
+            color: #51cf66;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .link-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 0.9rem;
+        }
+        
+        .link-btn:hover {
+            color: white;
         }
       `}</style>
     </div>

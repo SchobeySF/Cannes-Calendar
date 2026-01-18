@@ -14,7 +14,8 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signOut as firebaseSignOut,
-    onAuthStateChanged
+    onAuthStateChanged,
+    sendPasswordResetEmail
 } from 'firebase/auth';
 import { db, auth } from '../firebase';
 
@@ -106,6 +107,16 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const resetPassword = async (email) => {
+        try {
+            await sendPasswordResetEmail(auth, email);
+            return { success: true };
+        } catch (error) {
+            console.error("Password reset error:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
     const logout = async () => {
         await firebaseSignOut(auth);
         setUser(null);
@@ -174,6 +185,7 @@ export const AuthProvider = ({ children }) => {
             user,
             signIn,
             signUp,
+            resetPassword,
             logout,
             allUsers,
             addUser,
