@@ -5,7 +5,7 @@ import { db } from '../firebase';
 import { formatDate } from '../utils/dateUtils';
 
 const AdminPage = () => {
-  const { allUsers, addUser, updateUser, deleteUser, user: currentUser } = useAuth();
+  const { allUsers, addUser, updateUser, deleteUser, user } = useAuth();
 
   // Add User State
   const [newEmail, setNewEmail] = useState('');
@@ -113,7 +113,7 @@ const AdminPage = () => {
                   >
                     Edit
                   </button>
-                  {u.email !== currentUser.email && (
+                  {u.email !== user.email && (
                     <button
                       onClick={() => deleteUser(u.email)}
                       className="btn-delete"
