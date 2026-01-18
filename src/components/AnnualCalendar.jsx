@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { MONTHS, DAYS, getDaysInMonth, getFirstDayOfMonth, formatDate, isDatePast } from '../utils/dateUtils';
 import { useAuth } from '../context/AuthContext';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
 
@@ -44,7 +44,47 @@ const AnnualCalendar = ({ year = 2026 }) => {
     return () => unsubscribe();
   }, [year]);
 
+  // Helper to calculate diff between old and new bookings
+  const calculateChanges = (oldBookings, newBookings) => {
+    const changes = {
+      added: [],
+      removed: []
+    };
+
+    const allDates = new Set([...Object.keys(oldBookings), ...Object.keys(newBookings)]);
+
+    allDates.forEach(dateStr => {
+      const oldList = oldBookings[dateStr] || [];
+      const newList = newBookings[dateStr] || [];
+
+      // Check for added bookings for the acting user
+      const added = newList.filter(n =>
+        n.user.username === actingUser.username &&
+        !oldList.some(o => o.user.username === actingUser.username)
+      );
+
+      if (added.length > 0) {
+        changes.added.push(dateStr);
+      }
+
+      // Check for removed bookings for the acting user
+      const removed = oldList.filter(o =>
+        o.user.username === actingUser.username &&
+        !newList.some(n => n.user.username === actingUser.username)
+      );
+
+      if (removed.length > 0) {
+        changes.removed.push(dateStr);
+      }
+    });
+
+    return changes;
+  };
+
   const updateBookings = async (newBookings) => {
+    // Calculate changes before updating state
+    const changes = calculateChanges(bookings, newBookings);
+
     // Optimistic update
     setBookings(newBookings);
 
@@ -53,6 +93,20 @@ const AnnualCalendar = ({ year = 2026 }) => {
       await setDoc(doc(db, 'bookings', String(year)), {
         data: newBookings
       });
+
+      // Log changes to mail_queue if there are any
+      if (changes.added.length > 0 || changes.removed.length > 0) {
+        await addDoc(collection(db, 'mail_queue'), {
+          year,
+          modifiedBy: actingUser.username,
+          modifiedByName: actingUser.name,
+          timestamp: Date.now(),
+          addedDates: changes.added,
+          removedDates: changes.removed
+        });
+        console.log("Logged changes to mail_queue:", changes);
+      }
+
     } catch (error) {
       console.error("Error saving booking:", error);
       alert("Failed to save booking. Please try again.");

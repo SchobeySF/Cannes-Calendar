@@ -4,5 +4,10 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if true;
     }
+    
+    match /mail_queue/{docId} {
+      allow create: if true; // In production, checking 'request.auth != null' is better, but 'if true' matches current wildcard
+      allow read, delete: if true; // Needs to be readable/deletable by the service account (which has admin access anyway)
+    }
   }
 }
