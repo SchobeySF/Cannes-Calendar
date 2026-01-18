@@ -23,7 +23,7 @@ const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+    const [impersonatedUser, setImpersonatedUser] = useState(null);
     const [allUsers, setAllUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [authLoading, setAuthLoading] = useState(true);
@@ -37,6 +37,7 @@ export const AuthProvider = ({ children }) => {
             } else {
                 // User is signed out
                 setUser(null);
+                setImpersonatedUser(null);
             }
             setAuthLoading(false);
         });
@@ -105,7 +106,24 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         await firebaseSignOut(auth);
         setUser(null);
+        setImpersonatedUser(null);
     };
+
+    // Impersonation Logic
+    const impersonate = (email) => {
+        if (!user || (user.role !== 'admin' && user.role !== 'super-admin')) return;
+
+        if (email === user.email) {
+            setImpersonatedUser(null);
+        } else {
+            const targetUser = allUsers.find(u => u.email === email);
+            if (targetUser) {
+                setImpersonatedUser(targetUser);
+            }
+        }
+    };
+
+    const actingUser = impersonatedUser || user;
 
     // Admin Methods
     const addUser = async (newUser) => {
@@ -146,8 +164,6 @@ export const AuthProvider = ({ children }) => {
 
     // Derived State
     const isAuthenticated = !!user;
-    // Acting user logic preserved for backward compatibility (no impersonation for now)
-    const actingUser = user;
 
     return (
         <AuthContext.Provider value={{
@@ -161,7 +177,9 @@ export const AuthProvider = ({ children }) => {
             updateUser,
             deleteUser,
             loading,
-            actingUser // for compatibility with Calendar
+            actingUser,
+            impersonate,
+            impersonatedUser
         }}>
             {!authLoading && children}
         </AuthContext.Provider>

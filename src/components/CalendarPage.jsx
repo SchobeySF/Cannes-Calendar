@@ -64,13 +64,13 @@ const CalendarPage = () => {
               {(user.role === 'admin' || user.role === 'super-admin') ? (
                 <div className="impersonation-wrapper">
                   <select
-                    value={actingUser?.username || user.username}
+                    value={actingUser?.email || user.email}
                     onChange={(e) => impersonate(e.target.value)}
                     className="impersonation-select"
                   >
                     {/* Sort users alphabetically */}
                     {[...allUsers].sort((a, b) => a.name.localeCompare(b.name)).map(u => (
-                      <option key={u.username} value={u.username}>
+                      <option key={u.email} value={u.email}>
                         {u.name}
                       </option>
                     ))}
