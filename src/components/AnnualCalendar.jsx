@@ -42,7 +42,7 @@ const AnnualCalendar = ({ year = 2026 }) => {
     });
 
     return () => unsubscribe();
-  }, [year]);
+  }, [year, user?.uid]);
 
   // Robustly check if a booking belongs to the acting user
   const isBookingOwner = (bookingUser) => {

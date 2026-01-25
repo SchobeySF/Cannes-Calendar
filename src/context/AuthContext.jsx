@@ -75,15 +75,24 @@ export const AuthProvider = ({ children }) => {
     };
 
     // 2. Monitor All Users (for Admin View)
+    // 2. Monitor All Users (for Admin View)
     useEffect(() => {
+        if (!user) {
+            setAllUsers([]);
+            return;
+        }
+
         const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
             const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setAllUsers(usersData);
             setLoading(false);
+        }, (error) => {
+            console.error("Error fetching users:", error);
+            setLoading(false);
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [user]);
 
     // Auth Actions
     const signIn = async (email, password) => {
