@@ -1,25 +1,37 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper
     function isAuthenticated() {
       return request.auth != null;
     }
-
-    // 1. Bookings Collection
-    match /bookings/{document=**} {
-      allow read, write: if isAuthenticated();
+    
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super-admin'];
     }
 
-    // 2. Users Collection
+    // Bookings: Users can read, but only admins can delete/write
+    match /bookings/{document=**} {
+      allow read: if isAuthenticated();
+      allow write, delete: if isAdmin();
+    }
+
+    // Users: Each user can read all, but only admins can write
     match /users/{userId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write, delete: if isAdmin() || request.auth.uid == userId;
     }
     
-    // 3. Mail Queue (Notifications)
+    // Mail Queue: Only admins can create/delete (script has service account permissions)
     match /mail_queue/{docId} {
+      allow read: if isAdmin();
+      allow delete: if isAdmin();
       allow create: if isAuthenticated();
-      allow read, delete: if isAuthenticated();
+    }
+
+    // Audit Log: Only admins can read, app can create
+    match /audit_log/{docId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
     }
   }
 }
